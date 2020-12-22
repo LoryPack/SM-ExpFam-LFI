@@ -36,11 +36,11 @@ python3 plot_scripts/plot_learned_stats.py Lorenz95 --nets_folder net-FP --no_bn
 
 model=Lorenz95
 prop_size=0.1
-K=400  # briding steps
-inner_steps=1000
+K=200  # briding steps
+inner_steps=400
 inf_f=Exc-SM
 burnin=10000
-n_samples=10000
+n_samples=50000
 net_f=net-SM
 tune_window=100 #000000
 
