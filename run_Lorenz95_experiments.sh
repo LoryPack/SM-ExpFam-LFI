@@ -107,3 +107,8 @@ mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
 
 # PRODUCE PLOTS
 python3 plot_scripts/timeseries_predictive_error.py Lorenz95 exc --exchange_folder Exc-SM --n_observations 100
+
+python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py FP --inference_folder ABC-FP --inference_technique ABC
+python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder ABC-SM --inference_technique ABC
+python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder Exc-SM --inference_technique exchange
+

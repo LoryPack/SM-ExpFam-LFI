@@ -62,7 +62,7 @@ def parser_approx_likelihood_approach(default_root_folder, default_nets_folder="
                         help="The technique to use; can be 'SM' (exponential family), or 'FP'. The latter does not work with exchange.")
     parser.add_argument('model', type=str, help="The statistical model to consider.")
     parser.add_argument('--inference_technique', type=str, default="exchange",
-                        help="Inference approach; can be exchange, ABC or SAVPMCDoublyIntractable.")
+                        help="Inference approach; can be exchange or ABC.")
     parser.add_argument('--sleep', type=float, default=0, help='Minutes to sleep before starting')
     parser.add_argument('--start_observation_index', type=int, default=0, help='Index to start from')
     parser.add_argument('--n_observations', type=int, default=default_n_observations,

@@ -23,7 +23,7 @@ from src.functions import wass_dist, subsample_trace, \
     plot_confidence_bands_performance_vs_iteration, try_loading_wass_RMSE_post_mean, check_iteration_better_perf
 
 # need to compare the following techniques:
-# 1) SL 2) RE 3) ABC FP 4) ABC SM  5) Exchange SM 6) SAVPMCDoublyIntractable?
+# 1) SL 2) RE 3) ABC FP 4) ABC SM  5) Exchange SM
 # comparison will be computing the Wass distance for now
 
 # this can be done for the different models we have

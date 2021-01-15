@@ -93,7 +93,7 @@ if model not in ("gaussian", "beta", "gamma", "MA2", "AR2" "Lorenz95") or techni
 
 true_posterior_available = model not in ("Lorenz95",)
 
-if inference_technique not in ("exchange", "ABC", "SAVPMCDoublyIntractable"):
+if inference_technique not in ("exchange", "ABC"):
     raise NotImplementedError
 
 print("{} model with {} family.".format(model, technique))
