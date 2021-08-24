@@ -12,9 +12,8 @@ class LowerBoundedVarScaler(MinMaxScaler):
     def __init__(self, lower_bound=0, feature_range=(0, 1), copy=True, rescale_transformed_vars=True):
         # lower_bound can be both scalar of array-like with size the size of the variable; if not provided, it will be assumed to be 0
         self.lower_bound = lower_bound
-        self.feature_range = feature_range
-        self.copy = copy
         self.rescale_transformed_vars = rescale_transformed_vars
+        super(LowerBoundedVarScaler, self).__init__(feature_range=feature_range, copy=copy)
 
     def fit(self, X, y=None):
         """Compute the minimum and maximum to be used for later scaling.
@@ -41,7 +40,7 @@ class LowerBoundedVarScaler(MinMaxScaler):
         X = np.log(X - self.lower_bound)
 
         if self.rescale_transformed_vars:
-            return super().fit(X)
+            return super(LowerBoundedVarScaler, self).fit(X)
         else:
             return self
 
@@ -66,7 +65,7 @@ class LowerBoundedVarScaler(MinMaxScaler):
         # we first transform the data with the log transformation and then apply the scaler (optionally):
         X = np.log(X - self.lower_bound)
         if self.rescale_transformed_vars:
-            return super().transform(X)
+            return super(LowerBoundedVarScaler, self).transform(X)
         else:
             return X
 
@@ -82,7 +81,7 @@ class LowerBoundedVarScaler(MinMaxScaler):
             Transformed data.
         """
         if self.rescale_transformed_vars:
-            X = super().inverse_transform(X)
+            X = super(LowerBoundedVarScaler, self).inverse_transform(X)
         else:
             X = X
 
@@ -127,6 +126,14 @@ class LowerBoundedVarScaler(MinMaxScaler):
         res : float
             log determinant of the jacobian evaluated in t^{-1}(x)
         """
+        if self.rescale_transformed_vars:
+            # you still need to apply the inverse linear transformation in the transformed space to compute the jacobian
+            # for the right value of t^-1(x) (even if the jacobian itself does not take into account the linear
+            # transformation). Otherwise this function does computes the jacobian in the point obtained by applying the
+            # nonlinear inverse transformation to the input x, which is not correct if x was rescaled in the (0,1)
+            # range
+            x = MinMaxScaler.inverse_transform(self, np.atleast_2d(x))
+
         return - x.sum()
 
 
@@ -142,9 +149,9 @@ class TwoSidedBoundedVarScaler(MinMaxScaler):
         # upper and lower bounds can be both scalar of array-like with size the size of the variable; if not provided, they will be assumed to be 0 and 1
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
-        self.feature_range = feature_range
-        self.copy = copy
+
         self.rescale_transformed_vars = rescale_transformed_vars
+        super(TwoSidedBoundedVarScaler, self).__init__(feature_range=feature_range, copy=copy)
 
     @staticmethod
     def logit(x):
@@ -175,7 +182,7 @@ class TwoSidedBoundedVarScaler(MinMaxScaler):
         X = self.logit((X - self.lower_bound) / (self.upper_bound - self.lower_bound))
 
         if self.rescale_transformed_vars:
-            return super().fit(X)
+            return super(TwoSidedBoundedVarScaler, self).fit(X)
         else:
             return self
 
@@ -201,7 +208,7 @@ class TwoSidedBoundedVarScaler(MinMaxScaler):
         # we first transform the data with the log transformation and then apply the scaler (optionally):
         X = self.logit((X - self.lower_bound) / (self.upper_bound - self.lower_bound))
         if self.rescale_transformed_vars:
-            return super().transform(X)
+            return super(TwoSidedBoundedVarScaler, self).transform(X)
         else:
             return X
 
@@ -217,7 +224,7 @@ class TwoSidedBoundedVarScaler(MinMaxScaler):
             Transformed data.
         """
         if self.rescale_transformed_vars:
-            X = super().inverse_transform(X)
+            X = super(TwoSidedBoundedVarScaler, self).inverse_transform(X)
         else:
             X = X
 
@@ -262,6 +269,14 @@ class TwoSidedBoundedVarScaler(MinMaxScaler):
         res : float
             log determinant of the jacobian evaluated in t^{-1}(x)
         """
+
+        if self.rescale_transformed_vars:
+            # you still need to apply the inverse linear transformation in the transformed space to compute the jacobian
+            # for the right value of t^-1(x) (even if the jacobian itself does not take into account the linear
+            # transformation). Otherwise this function does computes the jacobian in the point obtained by applying the
+            # nonlinear inverse transformation to the input x, which is not correct if x was rescaled in the (0,1)
+            # range
+            x = MinMaxScaler.inverse_transform(self, np.atleast_2d(x))
 
         res_a = np.log(self.upper_bound - self.lower_bound)
         indices = x < 100  # for avoiding numerical overflow
@@ -308,9 +323,8 @@ class BoundedVarScaler(MinMaxScaler):
         self.lower_bound_two_sided = self.lower_bound[self.two_sided_bounded_vars].astype("float32")
         self.upper_bound_two_sided = self.upper_bound[self.two_sided_bounded_vars].astype("float32")
 
-        self.feature_range = feature_range
-        self.copy = copy
         self.rescale_transformed_vars = rescale_transformed_vars
+        super(BoundedVarScaler, self).__init__(feature_range=feature_range, copy=copy)
 
     @staticmethod
     def logit(x):
@@ -364,7 +378,7 @@ class BoundedVarScaler(MinMaxScaler):
         X = self._apply_nonlinear_transf(X)
 
         if self.rescale_transformed_vars:
-            return super().fit(X)
+            return super(BoundedVarScaler, self).fit(X)
         else:
             return self
 
@@ -388,7 +402,7 @@ class BoundedVarScaler(MinMaxScaler):
         X = self._apply_nonlinear_transf(X)
 
         if self.rescale_transformed_vars:
-            return super().transform(X)
+            return super(BoundedVarScaler, self).transform(X)
         else:
             return X
 
@@ -403,8 +417,11 @@ class BoundedVarScaler(MinMaxScaler):
         Xt : array-like of shape (n_samples, n_features)
             Transformed data.
         """
+        if isinstance(X, torch.Tensor):
+            X = X.detach().numpy()
+
         if self.rescale_transformed_vars:
-            X = super().inverse_transform(X)
+            X = super(BoundedVarScaler, self).inverse_transform(X)
         else:
             X = X
 
@@ -433,6 +450,8 @@ class BoundedVarScaler(MinMaxScaler):
         res : float
             log determinant of the jacobian
         """
+        if isinstance(x, torch.Tensor):
+            x = x.detach().numpy()
         x = self._check_reshape_single_sample(x)
         self._check_data_in_bounds(x.reshape(1, -1))
 
@@ -464,6 +483,15 @@ class BoundedVarScaler(MinMaxScaler):
         """
         if isinstance(x, torch.Tensor):
             x = x.detach().numpy()
+
+        if self.rescale_transformed_vars:
+            # you still need to apply the inverse linear transformation in the transformed space to compute the jacobian
+            # for the right value of t^-1(x) (even if the jacobian itself does not take into account the linear
+            # transformation). Otherwise this function does computes the jacobian in the point obtained by applying the
+            # nonlinear inverse transformation to the input x, which is not correct if x was rescaled in the (0,1)
+            # range
+            x = MinMaxScaler.inverse_transform(self, np.atleast_2d(x))
+
         x = self._check_reshape_single_sample(x)
 
         results = np.zeros_like(x)
