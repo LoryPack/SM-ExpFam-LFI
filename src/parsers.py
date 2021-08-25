@@ -17,13 +17,20 @@ def parser_generate_obs():
 def train_net_batch_parser(default_root_folder, default_nets_folder=None, default_lr_data=None, default_lr_theta=None):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('technique', type=str, help="The technique to use; can be 'SM' (exponential family) or 'FP'.")
+    parser.add_argument('technique', type=str, help="The technique to use; can be 'SM' or 'SSM' (both using the "
+                                                    "exponential family but with two different losses) or 'FP'.")
     parser.add_argument('model', type=str, help="The statistical model to consider.")
     parser.add_argument('--sleep', type=float, default=0, help='Minutes to sleep before starting (default 0).')
     parser.add_argument('--epochs', type=int, default=500, help='Number of epochs (defatul 500).')
     parser.add_argument('--no_scheduler', action="store_true", help="Disable scheduler")
     parser.add_argument('--root_folder', type=str, default=default_root_folder)
     parser.add_argument('--nets_folder', type=str, default=default_nets_folder)
+    parser.add_argument('--noise_sliced', type=str, default="radermacher",
+                        help="Which kind of noise to use with sliced SM; can be radermacher, sphere or gaussian. "
+                             "Default is radermacher.")
+    parser.add_argument('--no_var_red_sliced', action="store_true",
+                        help="Do not use the variance reduction approach with sliced SM or not."
+                             " Notice that the variance reduction is never used whene noise_sliced is 'sphere'")
     parser.add_argument('--no_bn', action="store_true")
     parser.add_argument('--affine_bn', action="store_true")
     parser.add_argument('--lr_data', type=float, default=default_lr_data, help='Learning rate for data')

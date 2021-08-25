@@ -12,4 +12,4 @@ pandas==1.0.5
 cloudpickle==1.4.1
 glmnet==2.2.1
 pot
-seaborn @ git+https://github.com/hockyg/seaborn.git@fe45446439ad7376afd3e8c3de6b8abf71935a11  # this uses the correct version of seaborn which implements kdeplots with weights
+seaborn==0.11.2 # this uses the correct version of seaborn which implements kdeplots with weights

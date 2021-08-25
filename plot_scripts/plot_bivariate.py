@@ -105,8 +105,6 @@ for obs_index in range(start_observation_index, n_observations):
     theta_obs = np.load(observation_folder + "theta_obs{}.npy".format(obs_index + 1))
     trace_true = np.load(observation_folder + "true_mcmc_trace{}.npy".format(obs_index + 1))
 
-    # INFERENCE STEP
-
     trace_exchange = np.load(inference_folder + "exchange_mcmc_trace{}.npy".format(obs_index + 1))
 
     fig, ax = plot_bivariate_marginal_with_trace_samples(

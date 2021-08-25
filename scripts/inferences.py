@@ -19,7 +19,8 @@ sys.path.append(os.getcwd())
 
 from src.functions import determine_eps, wass_dist, subsample_trace, ABC_inference, subsample_trace_and_weights, \
     RescaleAndNet, RescaleAndDiscardLastOutputNet, plot_single_marginal_with_trace_samples, \
-    plot_bivariate_marginal_with_trace_samples, plot_trace, save_dict_to_json, generate_training_samples_ABC_model
+    plot_bivariate_marginal_with_trace_samples, plot_trace, save_dict_to_json, generate_training_samples_ABC_model, \
+    DummyScaler
 from src.exchange_mcmc import exchange_MCMC_with_SM_statistics, uniform_prior_theta
 from src.networks import createDefaultNN, createDefaultNNWithDerivatives, create_PEN_architecture
 from src.utils_arma_example import ARMAmodel, extract_params_and_weights_from_journal_ar2, \
@@ -91,7 +92,7 @@ bridging_exch_MCMC = args.bridging_exch_MCMC
 np.random.seed(seed)
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "FP"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "SSM", "FP"):
     raise NotImplementedError
 
 true_posterior_available = model not in ("Lorenz95",)
@@ -110,7 +111,7 @@ default_root_folder = {"gaussian": "results/gaussian/",
 if results_folder is None:
     results_folder = default_root_folder[model]
 if nets_folder is None:
-    nets_folder = "net-SM" if technique == "SM" else "net-FP"
+    nets_folder = "net-" + technique if technique in ["SM", "SSM"] else "net-FP"
 
 results_folder = results_folder + '/'
 nets_folder = results_folder + nets_folder + '/'
@@ -386,11 +387,15 @@ elif model == "Lorenz95":
                                           nonlinearity=torch.nn.ReLU())  # I am using relu here
 
 # load nets
-if technique == "SM":
+if technique in ["SM", "SSM"]:
     net_theta_SM = load_net(nets_folder + "net_theta_SM.pth", net_theta_SM_architecture).eval()
     net_data_SM = load_net(nets_folder + "net_data_SM.pth", net_data_SM_architecture).eval()
     scaler_data_SM = pickle.load(open(nets_folder + "scaler_data_SM.pkl", "rb"))
     scaler_theta_SM = pickle.load(open(nets_folder + "scaler_theta_SM.pkl", "rb"))
+    if scaler_data_SM is None:
+        scaler_data_SM = DummyScaler()
+    if scaler_theta_SM is None:
+        scaler_theta_SM = DummyScaler()
 elif technique == "FP":
     net_FP = load_net(nets_folder + "net_data_FP.pth", net_FP_architecture)
     scaler_data_FP = pickle.load(open(nets_folder + "scaler_data_FP.pkl", "rb"))
@@ -445,8 +450,8 @@ for obs_index in range(start_observation_index, n_observations):
 
     # INFERENCE STEP
 
-    if inference_technique == "exchange" and "SM" == technique:
-        print("\nPerforming exchange MCMC inference.")
+    if inference_technique == "exchange" and technique in ["SM", "SSM"]:
+        print(f"\nPerforming exchange MCMC inference with {technique}.")
         if load_trace_if_available:
             try:
                 trace_exchange_burned_in = np.load(
@@ -514,9 +519,9 @@ for obs_index in range(start_observation_index, n_observations):
             perform_ABC = True
 
         # you can perform ABC inference with both SM, FP statistics and the true ones
-        if "SM" == technique:
+        if technique in ["SM", "SSM"]:
             if perform_ABC:
-                print("\nPerform ABC inference with SM statistics.")
+                print(f"\nPerform ABC inference with {technique} statistics.")
                 if weighted_euclidean_distance:  # define the distance object
                     # keep the last 100 test samples to estimate the initial eps value if not provided
                     distance_calculator = WeightedEuclidean(
@@ -603,6 +608,7 @@ for obs_index in range(start_observation_index, n_observations):
             param2_name=param_names[1], vertical=True, space_subplots=0.23)
         bbox_inches = Bbox(np.array([[0, .4], [5, 9.2]]))
         plt.savefig(inference_folder + "bivariate_marginals" + namefile_postfix + ".png", bbox_inches=bbox_inches)
+        plt.close()
     if plot_journal and inference_technique == "ABC":
         jrnl.plot_posterior_distr(path_to_save=inference_folder + "joint_posterior" + namefile_postfix + ".png",
                                   true_parameter_values=theta_obs)

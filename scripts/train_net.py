@@ -12,12 +12,13 @@ sys.path.append(os.getcwd())
 from abcpy.NN_utilities.utilities import save_net
 from abcpy.backends import BackendDummy, BackendMPI
 from abcpy.continuousmodels import Uniform
+from abcpy.statisticslearning import ExpFamStatistics
+from abcpy.statistics import Identity
 
 from src.utils_Lorenz95_example import StochLorenz95
 
-from src.CDE_training_routines import Fisher_divergence_training_routine_with_c_x_net_with_derivatives, \
-    FP_training_routine
-from src.functions import scale_samples, scale_thetas, plot_losses, save_dict_to_json, \
+from src.CDE_training_routines import FP_training_routine
+from src.functions import scale_samples, plot_losses, save_dict_to_json, \
     DummyScaler, DrawFromPrior
 from src.networks import createDefaultNN, createDefaultNNWithDerivatives, create_PEN_architecture
 from src.utils_arma_example import ARMAmodel
@@ -26,7 +27,6 @@ from src.utils_gamma_example import generate_gamma_training_samples
 from src.utils_beta_example import generate_beta_training_samples
 from src.utils_Lorenz95_example import LorenzLargerStatistics
 from src.parsers import train_net_batch_parser
-from src.Transformations import TwoSidedBoundedVarScaler, LowerBoundedVarScaler, BoundedVarScaler
 
 parser = train_net_batch_parser(default_root_folder=None)
 
@@ -41,6 +41,8 @@ no_scheduler = args.no_scheduler
 results_folder = args.root_folder
 nets_folder = args.nets_folder
 datasets_folder = args.datasets_folder
+noise_sliced = args.noise_sliced
+var_red_sliced = not args.no_var_red_sliced
 batch_norm_last_layer = not args.no_bn
 affine_batch_norm = args.affine_bn
 SM_lr = args.lr_data
@@ -58,7 +60,7 @@ save_net_at_each_epoch = args.save_net_at_each_epoch
 constraint_additional = args.constraint_additional
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "FP"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "SSM", "FP"):
     raise NotImplementedError
 
 backend = BackendMPI() if use_MPI else BackendDummy()
@@ -133,10 +135,12 @@ if model == "gaussian":
                                                                     sigma_bounds=sigma_bounds)
     print("Data generation took {:.4f} seconds".format(time() - start))
 
-    scaler_data = MinMaxScaler().fit(
-        samples_matrix.reshape(-1, samples_matrix.shape[-1]))  # fit the transformation scaler!
-    scaler_theta = MinMaxScaler().fit(theta_vect)
-    scaler_data_FP = scaler_data
+    scaler_data_FP = MinMaxScaler().fit(
+        samples_matrix.reshape(-1, samples_matrix.shape[
+            -1]))
+    lower_bound = upper_bound = None
+    scale_samples_flag = True
+    scale_parameters_flag = True
 
     # generate test data for using early stopping in learning the statistics with SM
     theta_vect_test, samples_matrix_test = generate_gaussian_training_samples(n_theta=n_samples_evaluation,
@@ -158,11 +162,12 @@ elif model == "beta":
                                                                 beta_bounds=beta_bounds)
     print("Data generation took {:.4f} seconds".format(time() - start))
 
-    scaler_data = TwoSidedBoundedVarScaler(lower_bound=0, upper_bound=1).fit(
-        samples_matrix.reshape(-1, samples_matrix.shape[-1]))  # fit the transformation scaler!
-    scaler_theta = MinMaxScaler().fit(theta_vect)
     scaler_data_FP = MinMaxScaler().fit(
         samples_matrix.reshape(-1, samples_matrix.shape[-1]))  # fit the transformation scaler!
+    lower_bound = np.array([0] * 10)
+    upper_bound = np.array([1] * 10)
+    scale_samples_flag = True
+    scale_parameters_flag = True
 
     # generate test data for using early stopping in learning the statistics with SM
     theta_vect_test, samples_matrix_test = generate_beta_training_samples(n_theta=n_samples_evaluation,
@@ -183,11 +188,12 @@ elif model == "gamma":
                                                                  k_bounds=k_bounds,
                                                                  theta_bounds=theta_bounds)
     print("Data generation took {:.4f} seconds".format(time() - start))
-    scaler_data = LowerBoundedVarScaler(lower_bound=0).fit(
-        samples_matrix.reshape(-1, samples_matrix.shape[-1]))  # fit the transformation scaler!
-    scaler_theta = MinMaxScaler().fit(theta_vect)
     scaler_data_FP = MinMaxScaler().fit(
         samples_matrix.reshape(-1, samples_matrix.shape[-1]))  # fit the transformation scaler!
+    lower_bound = np.array([0] * 10)
+    upper_bound = None
+    scale_samples_flag = True
+    scale_parameters_flag = True
 
     # generate test data for using early stopping in learning the statistics with SM
     theta_vect_test, samples_matrix_test = generate_gamma_training_samples(n_theta=n_samples_evaluation,
@@ -228,9 +234,10 @@ elif model == "AR2":
         print("Loaded data; {} training samples, {} test samples".format(theta_vect.shape[0], theta_vect_test.shape[0]))
 
     # no scalers here
-    scaler_data = DummyScaler()
-    scaler_theta = DummyScaler()
-    scaler_data_FP = scaler_data
+    scaler_data_FP = DummyScaler()
+    lower_bound = upper_bound = None
+    scale_samples_flag = False
+    scale_parameters_flag = False
 
 elif model == "MA2":
     arma_size = 100
@@ -265,9 +272,10 @@ elif model == "MA2":
         print("Loaded data; {} training samples, {} test samples".format(theta_vect.shape[0], theta_vect_test.shape[0]))
 
     # no scalers here
-    scaler_data = DummyScaler()
-    scaler_theta = DummyScaler()
-    scaler_data_FP = scaler_data
+    scaler_data_FP = DummyScaler()
+    lower_bound = upper_bound = None
+    scale_samples_flag = False
+    scale_parameters_flag = False
 
 elif model == "Lorenz95":
     # here use a larger set of summaries (23). Same parameter range for theta1, theta2 as for Hakk stats experiment,
@@ -339,29 +347,24 @@ elif model == "Lorenz95":
         lower_bound = np.array([None] * 23)
         lower_bound[1] = 0
         upper_bound = np.array([None] * 23)
-        scaler_data = BoundedVarScaler(lower_bound=lower_bound, upper_bound=upper_bound).fit(samples_matrix[:, 0, :])
     else:
-        scaler_data = MinMaxScaler().fit(samples_matrix[:, 0, :])
-    scaler_theta = MinMaxScaler().fit(theta_vect)
+        lower_bound = np.array([None] * 23)
+        upper_bound = np.array([None] * 23)
     scaler_data_FP = MinMaxScaler().fit(samples_matrix[:, 0, :])
+    scale_samples_flag = True
+    scale_parameters_flag = True
 
 # update the n samples with the actual ones (if we loaded them from saved datasets).
 args_dict['n_samples_training'] = theta_vect.shape[0]
 args_dict['n_samples_evaluation'] = theta_vect_test.shape[0]
-args_dict['scaler_data'] = str(type(scaler_data))
-args_dict['scaler_theta'] = str(type(scaler_theta))
+args_dict['scale_samples'] = str(type(scale_samples_flag))
+args_dict['scale_parameters'] = str(type(scale_parameters_flag))
 
 save_dict_to_json(args.__dict__, nets_folder + 'config.json')
 
 if generate_data_only:
     print("Generating data has finished")
     exit()
-
-samples_matrix_rescaled = scale_samples(scaler_data_FP if technique == "FP" else scaler_data, samples_matrix)
-theta_vect_rescaled = scale_thetas(scaler_theta, theta_vect)
-samples_matrix_test_rescaled = scale_samples(scaler_data_FP if technique == "FP" else scaler_data, samples_matrix_test,
-                                             requires_grad=True)
-theta_vect_test_rescaled = scale_thetas(scaler_theta, theta_vect_test)
 
 if model in ("beta", "gamma", "gaussian"):
     # define network architectures:
@@ -418,6 +421,7 @@ elif model == "AR2":
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm,
                                                 batch_norm_last_layer_momentum=momentum)
+
 elif model == "Lorenz95":
     # define network architectures:
     nonlinearity = torch.nn.Softplus
@@ -431,35 +435,55 @@ elif model == "Lorenz95":
 
 # TRAIN THE NETS:
 start = time()
-if technique == "SM":
+if technique in ["SM", "SSM"]:
     if seed is not None:
         torch.manual_seed(seed)
     # define networks
     net_data_SM = net_data_SM_architecture()
     net_theta_SM = net_theta_SM_architecture()
-    if save_net_flag:
-        pickle.dump(scaler_data, open(nets_folder + "scaler_data_SM.pkl", "wb"))
-        pickle.dump(scaler_theta, open(nets_folder + "scaler_theta_SM.pkl", "wb"))
 
-    # run training
-    loss_list, test_loss_list = Fisher_divergence_training_routine_with_c_x_net_with_derivatives(
-        samples_matrix_rescaled, theta_vect_rescaled, net_data_SM, net_theta_SM,
-        samples_matrix_test=samples_matrix_test_rescaled, theta_vect_test=theta_vect_test_rescaled,
-        n_epochs=epochs, batch_size=batch_size, lr=SM_lr, lr_theta=SM_lr_theta, seed=seed,
-        return_loss_list=True, epochs_before_early_stopping=epochs_before_early_stopping,
-        return_test_loss_list=True, epochs_test_interval=epochs_test_interval, early_stopping=early_stopping,
-        enable_scheduler=not no_scheduler, cuda=cuda, lam=lam,
-        update_batchnorm_running_means_before_eval=update_batchnorm_running_means_before_eval,
-        save_net_at_each_epoch=save_net_at_each_epoch, net_folder_path=nets_folder)
+    # convert the simulations and parameters to numpy if they are torch objects:
+    theta_vect = theta_vect.numpy() if isinstance(theta_vect, torch.Tensor) else theta_vect
+    theta_vect_test = theta_vect_test.numpy() if isinstance(theta_vect_test, torch.Tensor) else theta_vect_test
+    samples_matrix = samples_matrix.numpy() if isinstance(samples_matrix, torch.Tensor) else samples_matrix
+    samples_matrix_test = samples_matrix_test.numpy() if isinstance(samples_matrix_test,
+                                                                    torch.Tensor) else samples_matrix_test
+
+    statistics_learning = ExpFamStatistics(
+        model=None, statistics_calc=Identity(), backend=BackendDummy(),  # backend and model are not used 
+        statistics_net=net_data_SM, parameters_net=net_theta_SM, parameters=theta_vect,
+        simulations=samples_matrix, parameters_val=theta_vect_test, simulations_val=samples_matrix_test,
+        scale_samples=scale_samples_flag, scale_parameters=scale_parameters_flag,
+        lower_bound_simulations=lower_bound, upper_bound_simulations=upper_bound,
+        sliced=technique == "SSM", noise_type=noise_sliced,
+        variance_reduction=var_red_sliced and not noise_sliced == "sphere",
+        n_epochs=epochs, batch_size=batch_size, lr_simulations=SM_lr,
+        lr_parameters=SM_lr_theta, seed=seed, start_epoch_early_stopping=epochs_before_early_stopping,
+        epochs_early_stopping_interval=epochs_test_interval, early_stopping=early_stopping,
+        scheduler_parameters=False if no_scheduler else None,
+        scheduler_simulations=False if no_scheduler else None,
+        cuda=cuda, lam=lam, batch_norm_update_before_test=update_batchnorm_running_means_before_eval)
+
+    loss_list = statistics_learning.train_losses
+    test_loss_list = statistics_learning.test_losses
+
+    scaler_data = statistics_learning.get_simulations_scaler()
+    scaler_theta = statistics_learning.get_parameters_scaler()
 
     if save_net_flag:
         save_net(nets_folder + "net_theta_SM.pth", net_theta_SM)
         save_net(nets_folder + "net_data_SM.pth", net_data_SM)
+        pickle.dump(scaler_data, open(nets_folder + "scaler_data_SM.pkl", "wb"))
+        pickle.dump(scaler_theta, open(nets_folder + "scaler_theta_SM.pkl", "wb"))
+    args_dict['scaler_data'] = str(type(scaler_data))
+    args_dict['scaler_theta'] = str(type(scaler_theta))
 
 if technique == "FP":
     if seed is not None:
         torch.manual_seed(seed)
     net_FP = net_FP_architecture()
+    samples_matrix_rescaled = scale_samples(scaler_data_FP, samples_matrix)
+    samples_matrix_test_rescaled = scale_samples(scaler_data_FP, samples_matrix_test, requires_grad=True)
 
     if isinstance(theta_vect, np.ndarray):
         theta_vect = torch.tensor(theta_vect, dtype=torch.float)

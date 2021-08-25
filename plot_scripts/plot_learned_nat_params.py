@@ -20,7 +20,7 @@ from src.utils_Lorenz95_example import StochLorenz95
 import seaborn as sns
 
 from src.networks import createDefaultNN
-from src.functions import scale_thetas, generate_training_samples_ABC_model
+from src.functions import scale_thetas, generate_training_samples_ABC_model, DummyScaler
 from src.parsers import parser_plot_stats
 from src.utils_gaussian_example import generate_gaussian_training_samples, TrueNaturalParametersComputationGaussian
 from src.utils_gamma_example import generate_gamma_training_samples, TrueNaturalParametersComputationGamma
@@ -135,6 +135,8 @@ elif model == "Lorenz95":
     theta_vect, _ = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
 
 scaler_theta_SM = pickle.load(open(nets_folder + "scaler_theta_SM.pkl", "rb"))
+if scaler_theta_SM is None:
+    scaler_theta_SM = DummyScaler()
 theta_vect_rescaled = scale_thetas(scaler_theta_SM, theta_vect)
 
 if model in ("gaussian", "gamma", "beta"):

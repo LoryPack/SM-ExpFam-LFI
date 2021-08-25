@@ -398,7 +398,7 @@ def multivariate_normal_perturbation_kernel(old_position, rng, cov=None):
     return rng.multivariate_normal(mean=old_position, cov=cov)
 
 
-class TruncnormPerturbationKernel():
+class TruncnormPerturbationKernel:
 
     def __init__(self, lower_bound, upper_bound):
         self.lower_bound = lower_bound

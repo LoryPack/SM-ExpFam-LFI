@@ -20,7 +20,7 @@ from src.utils_Lorenz95_example import StochLorenz95
 import seaborn as sns
 
 from src.networks import createDefaultNN, create_PEN_architecture
-from src.functions import scale_samples, generate_training_samples_ABC_model
+from src.functions import scale_samples, generate_training_samples_ABC_model, DummyScaler
 from src.parsers import parser_plot_stats
 from src.utils_beta_example import generate_beta_training_samples, TrueSummariesComputationBeta
 from src.utils_gamma_example import generate_gamma_training_samples, TrueSummariesComputationGamma
@@ -192,6 +192,8 @@ if FP:
         samples_matrix_rescaled.reshape(-1, samples_matrix_rescaled.shape[-1])).detach().numpy()
 else:
     scaler_data_SM = pickle.load(open(nets_folder + "scaler_data_SM.pkl", "rb"))
+    if scaler_data_SM is None:
+        scaler_data_SM = DummyScaler()
     net_data_SM = load_net(nets_folder + "net_data_SM.pth", net_data_SM_architecture).eval()
     samples_matrix_rescaled = scale_samples(scaler_data_SM, samples_matrix)
     learned_stats_test = net_data_SM(
