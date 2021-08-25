@@ -649,7 +649,7 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
     ax_index = 0
     if trace_true is not None:
         true_post_means = np.mean(trace_true, axis=0)
-        sns.kdeplot(trace_true[:, 0], trace_true[:, 1], color=color, shade=True, shade_lowest=False, alpha=1,
+        sns.kdeplot(x=trace_true[:, 0], y=trace_true[:, 1], color=color, shade=True, thresh=0.05, alpha=1,
                     ax=ax[ax_index])
         ax[ax_index].axvline(true_post_means[0], color=color, ls=":", label="Posterior mean")
         ax[ax_index].axhline(true_post_means[1], color=color, ls=":")
@@ -657,7 +657,7 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
         ax_index += 1
 
     approx_post_means = np.mean(trace_approx, axis=0)
-    sns.kdeplot(trace_approx[:, 0], trace_approx[:, 1], color=color, shade=True, shade_lowest=False, alpha=1,
+    sns.kdeplot(x=trace_approx[:, 0], y=trace_approx[:, 1], color=color, shade=True, thresh=0.05, alpha=1,
                 ax=ax[ax_index], weights=weights_trace_approx, )
     ax[ax_index].axvline(approx_post_means[0], color=color, ls=":", label="Posterior mean")
     ax[ax_index].axhline(approx_post_means[1], color=color, ls=":")
@@ -666,7 +666,7 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
 
     if trace_approx_2 is not None:
         approx_post_means_2 = np.mean(trace_approx_2, axis=0)
-        sns.kdeplot(trace_approx_2[:, 0], trace_approx_2[:, 1], color=color, shade=True, shade_lowest=False, alpha=1,
+        sns.kdeplot(x=trace_approx_2[:, 0], y=trace_approx_2[:, 1], color=color, shade=True, thresh=0.05, alpha=1,
                     ax=ax[ax_index], weights=weights_trace_approx_2, )
         ax[ax_index].axvline(approx_post_means_2[0], color=color, ls=":", label="Posterior mean")
         ax[ax_index].axhline(approx_post_means_2[1], color=color, ls=":")
