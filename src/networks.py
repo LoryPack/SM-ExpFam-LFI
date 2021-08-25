@@ -20,7 +20,7 @@ def createDefaultNN(input_size, output_size, hidden_sizes=None, nonlinearity=Non
     Note that the nonlinearity here is as an object or a functional, not a class, eg:
         nonlinearity =  nn.Softplus()
     or:
-        nonlinearity =  nn.functional.softplus()
+        nonlinearity =  nn.functional.softplus
     """
 
     class DefaultNN(nn.Module):
@@ -83,8 +83,8 @@ def createDefaultNN(input_size, output_size, hidden_sizes=None, nonlinearity=Non
                 x = self.bn_in(x)
             for i in range(len(self.fc_hidden)):
                 x = nonlinearity_fcn(self.fc_hidden[i](x))
-            if batch_norm:
-                x = self.bn_hidden[i](x)
+                if batch_norm:
+                    x = self.bn_hidden[i](x)
 
             x = self.fc_out(x)
             if add_input_at_the_end:

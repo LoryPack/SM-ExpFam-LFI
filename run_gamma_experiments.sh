@@ -16,8 +16,8 @@ mkdir results/gamma/Exc-SM/10_inn_steps
 mkdir results/gamma/Exc-SM/30_inn_steps
 mkdir results/gamma/Exc-SM/100_inn_steps
 mkdir results/gamma/Exc-SM/200_inn_steps
-mkdir results/gamma/net_FP
-mkdir results/gamma/net_SM
+mkdir results/gamma/net-FP
+mkdir results/gamma/net-SM
 mkdir results/gamma/observations
 mkdir results/gamma/PMC-RE
 mkdir results/gamma/PMC-SL

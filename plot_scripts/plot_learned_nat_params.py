@@ -148,7 +148,7 @@ if model in ("gaussian", "gamma", "beta"):
 elif model in ("MA2", "AR2"):
     nonlinearity = torch.nn.Softplus
     output_size = 2
-    net_theta_SM_architecture = createDefaultNN(2, output_size, [30, 50, 50, 20], nonlinearity=nonlinearity(),
+    net_theta_SM_architecture = createDefaultNN(2, output_size, [15, 30, 30, 15], nonlinearity=nonlinearity(),
                                                 # net_theta_SM_architecture = createDefaultNN(2, output_size, [15, 30, 30, 15], nonlinearity=nonlinearity(),
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm)

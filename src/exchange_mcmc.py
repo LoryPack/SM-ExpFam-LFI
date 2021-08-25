@@ -49,7 +49,7 @@ def tune(scale, acc_rate):
 def exchange_MCMC_with_SM_statistics(x_obs, initial_theta, prior_theta, net_data, net_theta=None, scaler_data=None,
                                      scaler_theta=None, propose_new_theta=None, T=30000, burn_in=1000,
                                      tuning_window_size=100, aux_MCMC_inner_steps=0,
-                                     aux_MCMC_proposal_size=1, propose_new_aux_data=None, K=0, seed=None,
+                                     aux_MCMC_proposal_size=1, K=0, seed=None,
                                      debug_level=logging.WARN, lower_bounds_theta=None, upper_bounds_theta=None,
                                      **kwargs_propose_new_theta):
     """Implements exchange MCMC algorithm after learning statistics and parametrization with SM. It assumes that the
@@ -59,9 +59,7 @@ def exchange_MCMC_with_SM_statistics(x_obs, initial_theta, prior_theta, net_data
 
     If net_theta is None, we do not transform that and use the standard parameters that are provided.
 
-    propose_new_theta, propose_new_aux_data, generate_sample, prior_theta are functions.
-
-    If generate_sample is None: we do not start the inner MCMC from generating a sample from the true model.
+    propose_new_theta and prior_theta are functions.
 
     """
     logging.basicConfig(level=debug_level, filemode="w")

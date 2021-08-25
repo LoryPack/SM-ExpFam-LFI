@@ -16,8 +16,8 @@ mkdir results/gaussian/Exc-SM/10_inn_steps
 mkdir results/gaussian/Exc-SM/30_inn_steps
 mkdir results/gaussian/Exc-SM/100_inn_steps
 mkdir results/gaussian/Exc-SM/200_inn_steps
-mkdir results/gaussian/net_FP
-mkdir results/gaussian/net_SM
+mkdir results/gaussian/net-FP
+mkdir results/gaussian/net-SM
 mkdir results/gaussian/observations
 mkdir results/gaussian/PMC-RE
 mkdir results/gaussian/PMC-SL

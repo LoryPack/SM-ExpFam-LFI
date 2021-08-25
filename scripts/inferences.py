@@ -26,11 +26,14 @@ from src.utils_arma_example import ARMAmodel, extract_params_and_weights_from_jo
     extract_params_and_weights_from_journal_ma2, extract_posterior_mean_from_journal_ar2, \
     extract_posterior_mean_from_journal_ma2
 from src.utils_beta_example import TrueSummariesComputationBeta, IidBeta, \
-    extract_params_and_weights_from_journal_beta, extract_posterior_mean_from_journal_beta, generate_beta_training_samples
+    extract_params_and_weights_from_journal_beta, extract_posterior_mean_from_journal_beta, \
+    generate_beta_training_samples
 from src.utils_gaussian_example import TrueSummariesComputationGaussian, IidNormal, \
-    extract_params_and_weights_from_journal_gaussian, extract_posterior_mean_from_journal_gaussian, generate_gaussian_training_samples
+    extract_params_and_weights_from_journal_gaussian, extract_posterior_mean_from_journal_gaussian, \
+    generate_gaussian_training_samples
 from src.utils_gamma_example import TrueSummariesComputationGamma, IidGamma, \
-    extract_params_and_weights_from_journal_gamma, extract_posterior_mean_from_journal_gamma, generate_gamma_training_samples
+    extract_params_and_weights_from_journal_gamma, extract_posterior_mean_from_journal_gamma, \
+    generate_gamma_training_samples
 from src.utils_Lorenz95_example import extract_params_and_weights_from_journal_Lorenz95, \
     extract_posterior_mean_from_journal_Lorenz95, StochLorenz95_with_statistics
 from src.parsers import parser_approx_likelihood_approach
@@ -96,7 +99,7 @@ true_posterior_available = model not in ("Lorenz95",)
 if inference_technique not in ("exchange", "ABC"):
     raise NotImplementedError
 
-print("{} model with {} family.".format(model, technique))
+print("{} model with {}.".format(model, technique))
 # set up the default root folder and other values
 default_root_folder = {"gaussian": "results/gaussian/",
                        "gamma": "results/gamma/",
@@ -295,7 +298,7 @@ elif model == "Lorenz95":
     sigma_e = Uniform([[sigma_e_min], [sigma_e_max]], name='sigma_e')
     phi = Uniform([[phi_min], [phi_max]], name='phi')
     ABC_model = StochLorenz95_with_statistics([theta1, theta2, sigma_e, phi], time_units=4,
-                                                n_timestep_per_time_unit=30, name='lorenz')
+                                              n_timestep_per_time_unit=30, name='lorenz')
 
     print("Generate test data:")
     if inference_technique == "ABC":
@@ -427,7 +430,7 @@ except FileNotFoundError:
     running_time_inference_exchange_SM = np.zeros(n_observations)
 
 # Define backend
-backend = BackendMPI() if use_MPI else BackendDummy()  # need to install mpi4py to use this! I have some issues on my laptop.
+backend = BackendMPI() if use_MPI else BackendDummy()
 
 for obs_index in range(start_observation_index, n_observations):
     print("Observation ", obs_index + 1)

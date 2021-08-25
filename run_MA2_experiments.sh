@@ -16,8 +16,8 @@ mkdir results/MA2/Exc-SM/10_inn_steps
 mkdir results/MA2/Exc-SM/30_inn_steps
 mkdir results/MA2/Exc-SM/100_inn_steps
 mkdir results/MA2/Exc-SM/200_inn_steps
-mkdir results/MA2/net_FP
-mkdir results/MA2/net_SM
+mkdir results/MA2/net-FP
+mkdir results/MA2/net-SM
 mkdir results/MA2/observations
 mkdir results/MA2/PMC-RE
 mkdir results/MA2/PMC-SL

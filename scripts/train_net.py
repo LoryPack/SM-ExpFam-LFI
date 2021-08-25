@@ -66,7 +66,7 @@ backend = BackendMPI() if use_MPI else BackendDummy()
 if generate_data_only:
     print("Generate data only, no train.")
 else:
-    print("{} model with {} family.".format(model, technique))
+    print("{} model with {}.".format(model, technique))
 # set up the default root folder and other values
 default_root_folder = {"gaussian": "results/gaussian/",
                        "gamma": "results/gamma/",
@@ -214,8 +214,6 @@ elif model == "AR2":
         theta_vect, samples_matrix = draw_from_prior.sample_in_chunks(n_samples_training)
         theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
         print("Data generation took {:.2f} seconds".format(time() - start))
-        samples_matrix = np.expand_dims(samples_matrix, 1)
-        samples_matrix_test = np.expand_dims(samples_matrix_test, 1)
         if save_train_data:
             # save data before scalers are applied.
             np.save(datasets_folder + "theta_vect.npy", theta_vect)
@@ -253,8 +251,6 @@ elif model == "MA2":
         theta_vect, samples_matrix = draw_from_prior.sample_in_chunks(n_samples_training)
         theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
         print("Data generation took {:.2f} seconds".format(time() - start))
-        samples_matrix = np.expand_dims(samples_matrix, 1)
-        samples_matrix_test = np.expand_dims(samples_matrix_test, 1)
         if save_train_data:
             # save data before scalers are applied.
             np.save(datasets_folder + "theta_vect.npy", theta_vect)

@@ -16,8 +16,8 @@ mkdir results/beta/Exc-SM/10_inn_steps
 mkdir results/beta/Exc-SM/30_inn_steps
 mkdir results/beta/Exc-SM/100_inn_steps
 mkdir results/beta/Exc-SM/200_inn_steps
-mkdir results/beta/net_FP
-mkdir results/beta/net_SM
+mkdir results/beta/net-FP
+mkdir results/beta/net-SM
 mkdir results/beta/observations
 mkdir results/beta/PMC-RE
 mkdir results/beta/PMC-SL

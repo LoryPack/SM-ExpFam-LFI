@@ -23,14 +23,8 @@ def _base_training_routine(samples_matrix, theta_vect, batch_steps, net, net_the
                            update_batchnorm_running_means_before_eval=False,
                            save_net_at_each_epoch=False, net_folder_path=None,
                            **kwargs_batch_steps):
-    """This assumes samples matrix to be a 3d tensor with size (n_theta, size_sample) and theta_vect a 2d tensor with
+    """This assumes samples matrix to be a 2d tensor with size (n_theta, size_sample) and theta_vect a 2d tensor with
     size (n_theta, p).
-    lambda_corr=None is the regularization parameter for the penalization to output nodes being linearly dependent.
-    Note that penalization is an average of correlations, so it is bounded to 1.
-    lambda_l1=None is the regularization parameter for the l1 penalization to last layer weights.
-
-    symmetry_breaking=False is an attempt to break the symmetry coming from having t(x) g(\theta), that results in
-    network outputs being linear one to the other.
     """
     if save_net_at_each_epoch and net_folder_path is None:
         raise RuntimeError("Need to provide path where to save the net if you want to save them at each iterations.")
