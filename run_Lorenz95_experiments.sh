@@ -12,8 +12,8 @@ mkdir results/Lorenz95
 mkdir results/Lorenz95/ABC-FP
 mkdir results/Lorenz95/ABC-SM
 mkdir results/Lorenz95/Exc-SM
-mkdir results/Lorenz95/net_FP
-mkdir results/Lorenz95/net_SM
+mkdir results/Lorenz95/net-FP
+mkdir results/Lorenz95/net-SM
 mkdir results/Lorenz95/observations
 
 # GENERATE OBSERVATIONS AND EXACT POSTERIORS
@@ -36,7 +36,7 @@ python3 plot_scripts/plot_learned_stats.py Lorenz95 --nets_folder net-FP --no_bn
 
 model=Lorenz95
 prop_size=0.1
-K=200  # briding steps
+K=200  # bridging steps
 inner_steps=400
 inf_f=Exc-SM
 burnin=10000

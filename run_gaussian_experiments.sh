@@ -46,7 +46,7 @@ inn_steps_values=( 10 30 100 200 )
 for ((k=0;k<${#inn_steps_values[@]};++k)); do
 
     prop_size=0.1
-    K=0  # briding steps
+    K=0  # bridging steps
     inner_steps=${inn_steps_values[k]}
     inf_f=Exc-SM/${inner_steps}_inn_steps
     burnin=10000
