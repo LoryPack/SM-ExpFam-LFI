@@ -91,7 +91,7 @@ bridging_exch_MCMC = args.bridging_exch_MCMC
 np.random.seed(seed)
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2" "Lorenz95") or technique not in ("SM", "FP"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "FP"):
     raise NotImplementedError
 
 true_posterior_available = model not in ("Lorenz95",)
