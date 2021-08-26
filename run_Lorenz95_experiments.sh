@@ -51,7 +51,7 @@ python3 scripts/inferences.py SM ${model} --burnin $burnin --n_samples $n_sample
     --aux_MCMC_proposal_size_exchange_MCMC ${prop_size} \
     --tuning ${tune_window} \
     --deb warn \
-    --propose_new_theta_exchange_MCMC truncnorm
+    --propose_new_theta_exchange_MCMC transformation
 
 
 # INFERENCES WITH ABC-SM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS

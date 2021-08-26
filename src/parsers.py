@@ -116,7 +116,7 @@ def parser_approx_likelihood_approach(default_root_folder, default_nets_folder="
                         help='Size of tuning window for ExcMCMC.')
     parser.add_argument('--bridging_exch_MCMC', type=int, default=0, help='Number of bridging steps for ExcMCMC.')
     parser.add_argument('--propose_new_theta_exchange_MCMC', type=str, help="Can be norm, truncnorm or transformation.",
-                        default="truncnorm")
+                        default="transformation")
     return parser
 
 

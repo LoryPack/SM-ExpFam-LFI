@@ -61,7 +61,7 @@ for ((k=0;k<${#inn_steps_values[@]};++k)); do
         --aux_MCMC_proposal_size_exchange_MCMC ${prop_size} \
         --tuning ${tune_window} \
         --deb warn \
-        --propose_new_theta_exchange_MCMC truncnorm
+        --propose_new_theta_exchange_MCMC transformation
 
 done
 
