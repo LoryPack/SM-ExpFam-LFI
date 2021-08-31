@@ -23,7 +23,7 @@ from src.functions import wass_dist, subsample_trace, \
     plot_confidence_bands_performance_vs_iteration, try_loading_wass_RMSE_post_mean, check_iteration_better_perf
 
 # need to compare the following techniques:
-# 1) SL 2) RE 3) ABC FP 4) ABC SM  5) Exchange SM
+# 1) SL 2) RE 3) ABC FP 4) ABC SM 5) ABC SSM 6) Exchange SM 7) Exchange SSM
 # comparison will be computing the Wass distance for now
 
 # this can be done for the different models we have
@@ -51,7 +51,9 @@ parser.add_argument('--inference_folder_SL', type=str, default="PMC-SL")
 parser.add_argument('--inference_folder_RE', type=str, default="PMC-RE")
 parser.add_argument('--inference_folder_ABC_FP', type=str, default="ABC-FP")
 parser.add_argument('--inference_folder_ABC_SM', type=str, default="ABC-SM")
+parser.add_argument('--inference_folder_ABC_SSM', type=str, default="ABC-SSM")
 parser.add_argument('--inference_folder_exchange_SM', type=str, default="Exc-SM")
+parser.add_argument('--inference_folder_exchange_SSM', type=str, default="Exc-SSM")
 parser.add_argument('--SL_steps', type=int, default=10)
 parser.add_argument('--SL_n_samples', type=int, default=1000)
 parser.add_argument('--SL_n_samples_per_param', type=int, default=100)
@@ -64,12 +66,18 @@ parser.add_argument('--ABC_FP_steps', type=int, default=100)
 parser.add_argument('--ABC_SM_algorithm', type=str, default="SABC")
 parser.add_argument('--ABC_SM_steps', type=int, default=100)
 parser.add_argument('--ABC_SM_n_samples', type=int, default=1000)
+parser.add_argument('--ABC_SSM_algorithm', type=str, default="SABC")
+parser.add_argument('--ABC_SSM_steps', type=int, default=100)
+parser.add_argument('--ABC_SSM_n_samples', type=int, default=1000)
 parser.add_argument('--exchange_SM_n_samples', type=int, default=10000)
+parser.add_argument('--exchange_SSM_n_samples', type=int, default=10000)
 parser.add_argument('--load_SL_if_available', action="store_true")
 parser.add_argument('--load_RE_if_available', action="store_true")
 parser.add_argument('--load_ABC_FP_if_available', action="store_true")
 parser.add_argument('--load_ABC_SM_if_available', action="store_true")
+parser.add_argument('--load_ABC_SSM_if_available', action="store_true")
 parser.add_argument('--load_exchange_SM_if_available', action="store_true")
+parser.add_argument('--load_exchange_SSM_if_available', action="store_true")
 parser.add_argument('--load_all_if_available', action="store_true")
 parser.add_argument('--CI_level', type=float, default=95,
                     help="The size of confidence interval (CI) to produce the plots. It represents the confidence "
@@ -101,12 +109,18 @@ ABC_FP_n_samples = args.ABC_FP_n_samples
 ABC_SM_algorithm = args.ABC_SM_algorithm
 ABC_SM_steps = args.ABC_SM_steps
 ABC_SM_n_samples = args.ABC_SM_n_samples
+ABC_SSM_algorithm = args.ABC_SSM_algorithm
+ABC_SSM_steps = args.ABC_SSM_steps
+ABC_SSM_n_samples = args.ABC_SSM_n_samples
 exchange_SM_n_samples = args.exchange_SM_n_samples
+exchange_SSM_n_samples = args.exchange_SSM_n_samples
 load_SL_if_available = args.load_SL_if_available
 load_RE_if_available = args.load_RE_if_available
 load_ABC_FP_if_available = args.load_ABC_FP_if_available
 load_ABC_SM_if_available = args.load_ABC_SM_if_available
+load_ABC_SSM_if_available = args.load_ABC_SSM_if_available
 load_exchange_SM_if_available = args.load_exchange_SM_if_available
+load_exchange_SSM_if_available = args.load_exchange_SSM_if_available
 load_all_if_available = args.load_all_if_available
 CI_level = args.CI_level
 
@@ -136,7 +150,9 @@ inference_folder_SL = results_folder + "/" + args.inference_folder_SL + "/"
 inference_folder_RE = results_folder + "/" + args.inference_folder_RE + "/"
 inference_folder_ABC_FP = results_folder + "/" + args.inference_folder_ABC_FP + "/"
 inference_folder_ABC_SM = results_folder + "/" + args.inference_folder_ABC_SM + "/"
+inference_folder_ABC_SSM = results_folder + "/" + args.inference_folder_ABC_SSM + "/"
 inference_folder_exchange_SM = results_folder + "/" + args.inference_folder_exchange_SM + "/"
+inference_folder_exchange_SSM = results_folder + "/" + args.inference_folder_exchange_SSM + "/"
 
 observation_folder = results_folder + args.observation_folder + "/"  # the one in the two results folders should be the same.
 
@@ -151,7 +167,9 @@ if load_all_if_available:
     load_RE_if_available = True
     load_ABC_FP_if_available = True
     load_ABC_SM_if_available = True
+    load_ABC_SSM_if_available = True
     load_exchange_SM_if_available = True
+    load_exchange_SSM_if_available = True
 
 true_posterior_available = model in ("gaussian", "beta", "gamma", "MA2", "AR2")
 
@@ -163,12 +181,18 @@ RE_namefile_postfix_no_index = f"_steps_{RE_steps}_n_samples_{RE_n_samples}_" \
                                f"n_samples_per_param_{RE_n_samples_per_param}"
 ABC_FP_namefile_postfix_no_index = f"_{ABC_FP_algorithm}_FP_steps_{ABC_FP_steps}_n_samples_{ABC_FP_n_samples}"
 ABC_SM_namefile_postfix_no_index = f"_{ABC_SM_algorithm}_SM_steps_{ABC_SM_steps}_n_samples_{ABC_SM_n_samples}"
+ABC_SSM_namefile_postfix_no_index = f"_{ABC_SSM_algorithm}_SSM_steps_{ABC_SSM_steps}_n_samples_{ABC_SSM_n_samples}"
 
 wass_dist_exchange_SM, RMSE_post_mean_exchange_SM, load_successful_exchange_SM = try_loading_wass_RMSE_post_mean(
     inference_folder_exchange_SM, f"_exchange_n_samples_{exchange_SM_n_samples}", load_exchange_SM_if_available)
 if not load_successful_exchange_SM:
     wass_dist_exchange_SM = np.zeros(n_observations - start_observation_index)
     RMSE_post_mean_exchange_SM = np.zeros(n_observations - start_observation_index)
+wass_dist_exchange_SSM, RMSE_post_mean_exchange_SSM, load_successful_exchange_SSM = try_loading_wass_RMSE_post_mean(
+    inference_folder_exchange_SSM, f"_exchange_n_samples_{exchange_SSM_n_samples}", load_exchange_SSM_if_available)
+if not load_successful_exchange_SSM:
+    wass_dist_exchange_SSM = np.zeros(n_observations - start_observation_index)
+    RMSE_post_mean_exchange_SSM = np.zeros(n_observations - start_observation_index)
 
 if plot == "final":
     # first try loading the Wass distances:
@@ -180,6 +204,8 @@ if plot == "final":
         inference_folder_ABC_FP, ABC_FP_namefile_postfix_no_index, load_ABC_FP_if_available)
     wass_dist_ABC_SM, RMSE_post_mean_ABC_SM, load_successful_ABC_SM = try_loading_wass_RMSE_post_mean(
         inference_folder_ABC_SM, ABC_SM_namefile_postfix_no_index, load_ABC_SM_if_available)
+    wass_dist_ABC_SSM, RMSE_post_mean_ABC_SSM, load_successful_ABC_SSM = try_loading_wass_RMSE_post_mean(
+        inference_folder_ABC_SSM, ABC_SSM_namefile_postfix_no_index, load_ABC_SSM_if_available)
 
     # if loading was not successful: need to compute them from scratch
     if not load_successful_SL:
@@ -194,6 +220,9 @@ if plot == "final":
     if not load_successful_ABC_SM:
         wass_dist_ABC_SM = np.zeros((n_observations - start_observation_index))
         RMSE_post_mean_ABC_SM = np.zeros((n_observations - start_observation_index))
+    if not load_successful_ABC_SSM:
+        wass_dist_ABC_SSM = np.zeros((n_observations - start_observation_index))
+        RMSE_post_mean_ABC_SSM = np.zeros((n_observations - start_observation_index))
 
     for obs_index in range(start_observation_index, n_observations):
         print("Observation ", obs_index + 1)
@@ -218,6 +247,20 @@ if plot == "final":
 
             np.save(inference_folder_exchange_SM + "wass_dist", wass_dist_exchange_SM)
             np.save(inference_folder_exchange_SM + "RMSE_post_mean", RMSE_post_mean_exchange_SM)
+
+        if true_posterior_available and not load_successful_exchange_SSM:
+            # load the exchange MCMC trace and compute Wass dist:
+            trace_exchange = np.load(inference_folder_exchange_SSM + f"exchange_mcmc_trace{obs_index + 1}.npy")
+            means_exchange = np.mean(trace_exchange, axis=0)
+            trace_exchange_subsample = subsample_trace(trace_exchange,
+                                                       size=subsample_size)  # used to compute wass dist
+            # compute wass distance and RMSE
+            wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
+                                                          numItermax=10 ** 6)
+            RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
+
+            np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
+            np.save(inference_folder_exchange_SSM + "RMSE_post_mean", RMSE_post_mean_exchange_SSM)
 
         if true_posterior_available:
             # wass dist and RMSE:
@@ -270,13 +313,28 @@ if plot == "final":
                         wass_dist_ABC_SM)
                 np.save(inference_folder_ABC_SM + "RMSE_post_mean" + ABC_SM_namefile_postfix_no_index,
                         RMSE_post_mean_ABC_SM)
+            if not load_successful_ABC_SSM:
+                # now need to load the journal files and then compute the Wass dist for each iteration:
+                ABC_SSM_namefile_postfix = f"_{obs_index + 1}" + ABC_SSM_namefile_postfix_no_index
+                jrnl_ABC_SSM = Journal.fromFile(inference_folder_ABC_SSM + "jrnl" + ABC_SSM_namefile_postfix + ".jnl")
+                params_ABC_SSM, weights_ABC_SSM = extract_params_and_weights_from_journal(jrnl_ABC_SSM, )
+                means_ABC_SSM = extract_posterior_mean_from_journal(jrnl_ABC_SSM, )
 
-    list_names = ["PMC-SL", "PMC-RE", "ABC-FP", "ABC-SM", "Exchange SM"]
-    list_names_short = ["PMC-SL", "PMC-RE", "ABC-FP", "ABC-SM", "Exc-SM"]
-    list_indeces = [1, 2, 3, 4, 5]
-    list_wass_dist = [wass_dist_SL, wass_dist_RE, wass_dist_ABC_FP, wass_dist_ABC_SM, wass_dist_exchange_SM]
+                wass_dist_ABC_SSM[obs_index] = wass_dist(params_ABC_SSM, trace_true_subsample,
+                                                         weights_post_1=weights_ABC_SSM, numItermax=10 ** 6)
+                RMSE_post_mean_ABC_SSM[obs_index] = np.linalg.norm(means_ABC_SSM - true_post_means)
+                np.save(inference_folder_ABC_SSM + "wass_dist" + ABC_SSM_namefile_postfix_no_index,
+                        wass_dist_ABC_SSM)
+                np.save(inference_folder_ABC_SSM + "RMSE_post_mean" + ABC_SSM_namefile_postfix_no_index,
+                        RMSE_post_mean_ABC_SSM)
+
+    list_names = ["PMC-SL", "PMC-RE", "ABC-FP", "ABC-SM", "ABC-SSM", "Exchange SM", "Exchange SSM"]
+    list_names_short = ["PMC-SL", "PMC-RE", "ABC-FP", "ABC-SM", "ABC-SSM", "Exc-SM", "Exc-SSM"]
+    list_indeces = [1, 2, 3, 4, 5, 6, 7]
+    list_wass_dist = [wass_dist_SL, wass_dist_RE, wass_dist_ABC_FP, wass_dist_ABC_SM, wass_dist_ABC_SSM,
+                      wass_dist_exchange_SM, wass_dist_exchange_SSM]
     list_RMSE_post_mean = [RMSE_post_mean_SL, RMSE_post_mean_RE, RMSE_post_mean_ABC_FP, RMSE_post_mean_ABC_SM,
-                           RMSE_post_mean_exchange_SM]
+                           RMSE_post_mean_ABC_SSM, RMSE_post_mean_exchange_SM, RMSE_post_mean_exchange_SSM]
 
     fig = plt.figure(figsize=(2 * len(list_names), 6))
     # boxplots: the box covers range from 1st to 3rd quartile. We set the whiskers to the same band size in the
@@ -369,6 +427,20 @@ else:
                 np.save(inference_folder_exchange_SM + "wass_dist", wass_dist_exchange_SM)
                 np.save(inference_folder_exchange_SM + "RMSE_post_mean", RMSE_post_mean_exchange_SM)
 
+            if true_posterior_available and not load_successful_exchange_SSM:
+                # load the exchange MCMC trace and compute Wass dist:
+                trace_exchange = np.load(inference_folder_exchange_SSM + f"exchange_mcmc_trace{obs_index + 1}.npy")
+                means_exchange = np.mean(trace_exchange, axis=0)
+                trace_exchange_subsample = subsample_trace(trace_exchange,
+                                                           size=subsample_size)  # used to compute wass dist
+                # compute wass distance and RMSE
+                wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
+                                                             numItermax=10 ** 6)
+                RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
+
+                np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
+                np.save(inference_folder_exchange_SSM + "RMSE_post_mean", RMSE_post_mean_exchange_SSM)
+
             # now need to load the journal files and then compute the Wass dist for each iteration:
             if not load_successful_SL:
                 SL_namefile_postfix = f"_{obs_index + 1}" + SL_namefile_postfix_no_index
@@ -443,6 +515,11 @@ else:
                                                        color_line="blue", band_1=CI_level, alpha_1=0.3,
                                                        band_2=0,
                                                        band_3=0, hatch='.')
+        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * max(SL_steps, RE_steps)),
+                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+                                                       color_line="blue", band_1=CI_level, alpha_1=0.3,
+                                                       band_2=0,
+                                                       band_3=0, hatch='.')
         ax.set_title("RMSE posterior mean")
         ax.set_xlabel("Iteration")
         ax.legend()
@@ -483,6 +560,19 @@ else:
 
                 np.save(inference_folder_exchange_SM + "wass_dist", wass_dist_exchange_SM)
                 np.save(inference_folder_exchange_SM + "RMSE_post_mean", RMSE_post_mean_exchange_SM)
+            if true_posterior_available and not load_successful_exchange_SSM:
+                # load the exchange MCMC trace and compute Wass dist:
+                trace_exchange = np.load(inference_folder_exchange_SSM + f"exchange_mcmc_trace{obs_index + 1}.npy")
+                means_exchange = np.mean(trace_exchange, axis=0)
+                trace_exchange_subsample = subsample_trace(trace_exchange,
+                                                           size=subsample_size)  # used to compute wass dist
+                # compute wass distance and RMSE
+                wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
+                                                             numItermax=10 ** 6)
+                RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
+
+                np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
+                np.save(inference_folder_exchange_SSM + "RMSE_post_mean", RMSE_post_mean_exchange_SSM)
 
             # now need to load the journal files and then compute the Wass dist for each iteration:
             if not load_successful_SL:
@@ -512,6 +602,10 @@ else:
                                                        ax=ax, label="Exc-SM", color_band_1="blue", color_line="blue",
                                                        band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
                                                        fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
+                                                       ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
+                                                       band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
+                                                       fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("Wasserstein distance")
         # ax.set_xlabel("Iteration")
@@ -535,6 +629,10 @@ else:
                                                        fig=fig, ax=ax, label="Exc-SM", color_band_1="blue",
                                                        color_line="blue", band_1=CI_level, alpha_1=1,
                                                        alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * SL_steps),
+                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+                                                       color_line="blue", band_1=CI_level, alpha_1=1,
+                                                       alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel(r"RMSE posterior mean")
         # ax.set_xlabel("Iteration")
@@ -549,7 +647,9 @@ else:
 
         # check now at which iteration wass_dist_SL improves upon my method:
         iteration = check_iteration_better_perf(wass_dist_SL, wass_dist_exchange_SM)
-        print("SL performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        print("SL performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_SL, wass_dist_exchange_SSM)
+        print("SL performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)
 
     elif plot == "RE":
 
@@ -586,6 +686,20 @@ else:
                 np.save(inference_folder_exchange_SM + "wass_dist", wass_dist_exchange_SM)
                 np.save(inference_folder_exchange_SM + "RMSE_post_mean", RMSE_post_mean_exchange_SM)
 
+            if true_posterior_available and not load_successful_exchange_SSM:
+                # load the exchange MCMC trace and compute Wass dist:
+                trace_exchange = np.load(inference_folder_exchange_SSM + f"exchange_mcmc_trace{obs_index + 1}.npy")
+                means_exchange = np.mean(trace_exchange, axis=0)
+                trace_exchange_subsample = subsample_trace(trace_exchange,
+                                                           size=subsample_size)  # used to compute wass dist
+                # compute wass distance and RMSE
+                wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
+                                                             numItermax=10 ** 6)
+                RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
+
+                np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
+                np.save(inference_folder_exchange_SSM + "RMSE_post_mean", RMSE_post_mean_exchange_SSM)
+
             # now need to load the journal files and then compute the Wass dist for each iteration:
             if not load_successful_RE:
                 RE_namefile_postfix = f"_{obs_index + 1}" + RE_namefile_postfix_no_index
@@ -614,6 +728,10 @@ else:
                                                        ax=ax, label="Exc-SM", color_band_1="blue", color_line="blue",
                                                        band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
                                                        fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
+                                                       ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
+                                                       band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
+                                                       fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("Wasserstein distance")
         # ax.set_xlabel("Iteration")
@@ -636,6 +754,10 @@ else:
                                                        fig=fig, ax=ax, label="Exc-SM", color_band_1="blue",
                                                        color_line="blue", band_1=CI_level, alpha_1=1,
                                                        alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * RE_steps),
+                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+                                                       color_line="blue", band_1=CI_level, alpha_1=1,
+                                                       alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("RMSE posterior mean")
         # ax.set_xlabel("Iteration")
@@ -650,6 +772,8 @@ else:
 
         iteration = check_iteration_better_perf(wass_dist_RE, wass_dist_exchange_SM)
         print("RE performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_RE, wass_dist_exchange_SSM)
+        print("RE performs better than my method at iteration: ", None if iteration is None else iteration + 1)
 
     elif plot in ("ABC",):
         # first try loading the Wass distances:
@@ -657,6 +781,8 @@ else:
             inference_folder_ABC_FP, "_iterations" + ABC_FP_namefile_postfix_no_index, load_ABC_FP_if_available)
         wass_dist_ABC_SM, RMSE_post_mean_ABC_SM, load_successful_ABC_SM = try_loading_wass_RMSE_post_mean(
             inference_folder_ABC_SM, "_iterations" + ABC_SM_namefile_postfix_no_index, load_ABC_SM_if_available)
+        wass_dist_ABC_SSM, RMSE_post_mean_ABC_SSM, load_successful_ABC_SSM = try_loading_wass_RMSE_post_mean(
+            inference_folder_ABC_SSM, "_iterations" + ABC_SSM_namefile_postfix_no_index, load_ABC_SSM_if_available)
 
         # if loading was not successful: need to compute them from scratch
         if not load_successful_ABC_FP:
@@ -665,6 +791,9 @@ else:
         if not load_successful_ABC_SM:
             wass_dist_ABC_SM = np.zeros((ABC_SM_steps, n_observations - start_observation_index))
             RMSE_post_mean_ABC_SM = np.zeros((ABC_SM_steps, n_observations - start_observation_index))
+        if not load_successful_ABC_SSM:
+            wass_dist_ABC_SSM = np.zeros((ABC_SSM_steps, n_observations - start_observation_index))
+            RMSE_post_mean_ABC_SSM = np.zeros((ABC_SSM_steps, n_observations - start_observation_index))
 
         for obs_index in range(start_observation_index, n_observations):
             print("Observation ", obs_index + 1)
@@ -690,6 +819,20 @@ else:
                 np.save(inference_folder_exchange_SM + "wass_dist", wass_dist_exchange_SM)
                 np.save(inference_folder_exchange_SM + "RMSE_post_mean", RMSE_post_mean_exchange_SM)
 
+            if true_posterior_available and not load_successful_exchange_SSM:
+                # load the exchange MCMC trace and compute Wass dist:
+                trace_exchange = np.load(inference_folder_exchange_SSM + f"exchange_mcmc_trace{obs_index + 1}.npy")
+                means_exchange = np.mean(trace_exchange, axis=0)
+                trace_exchange_subsample = subsample_trace(trace_exchange,
+                                                           size=subsample_size)  # used to compute wass dist
+                # compute wass distance and RMSE
+                wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
+                                                             numItermax=10 ** 6)
+                RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
+
+                np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
+                np.save(inference_folder_exchange_SSM + "RMSE_post_mean", RMSE_post_mean_exchange_SSM)
+
             # now need to load the journal files and then compute the Wass dist for each iteration:
             if not load_successful_ABC_FP:
                 ABC_FP_namefile_postfix = f"_{obs_index + 1}" + ABC_FP_namefile_postfix_no_index
@@ -697,6 +840,9 @@ else:
             if not load_successful_ABC_SM:
                 ABC_SM_namefile_postfix = f"_{obs_index + 1}" + ABC_SM_namefile_postfix_no_index
                 jrnl_ABC_SM = Journal.fromFile(inference_folder_ABC_SM + "jrnl" + ABC_SM_namefile_postfix + ".jnl")
+            if not load_successful_ABC_SSM:
+                ABC_SSM_namefile_postfix = f"_{obs_index + 1}" + ABC_SSM_namefile_postfix_no_index
+                jrnl_ABC_SSM = Journal.fromFile(inference_folder_ABC_SSM + "jrnl" + ABC_SSM_namefile_postfix + ".jnl")
 
             for iteration in range(ABC_FP_steps):  # assume the iterations for ABC_FP and ABC_SM are the same
                 if true_posterior_available:
@@ -729,6 +875,19 @@ else:
                         np.save(
                             inference_folder_ABC_SM + "RMSE_post_mean_iterations" + ABC_SM_namefile_postfix_no_index,
                             RMSE_post_mean_ABC_SM)
+                    if not load_successful_ABC_SSM:
+                        params_ABC_SSM, weights_ABC_SSM = extract_params_and_weights_from_journal(jrnl_ABC_SSM,
+                                                                                                step=iteration)
+                        means_ABC_SSM = extract_posterior_mean_from_journal(jrnl_ABC_SSM, step=iteration)
+                        wass_dist_ABC_SSM[iteration, obs_index] = wass_dist(params_ABC_SSM,
+                                                                           trace_true_subsample, numItermax=10 ** 6,
+                                                                           weights_post_1=weights_ABC_SSM)
+                        RMSE_post_mean_ABC_SSM[iteration, obs_index] = np.linalg.norm(means_ABC_SSM - true_post_means)
+                        np.save(inference_folder_ABC_SSM + "wass_dist_iterations" + ABC_SSM_namefile_postfix_no_index,
+                                wass_dist_ABC_SSM)
+                        np.save(
+                            inference_folder_ABC_SSM + "RMSE_post_mean_iterations" + ABC_SSM_namefile_postfix_no_index,
+                            RMSE_post_mean_ABC_SSM)
 
         # now create the plot!
         fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(6, 4))
@@ -740,10 +899,20 @@ else:
                                                        color_band_1="C2",
                                                        color_line="C2", band_1=CI_level, alpha_1=0.3, alpha_2=0,
                                                        alpha_3=0, fill_between=True)
+        plot_confidence_bands_performance_vs_iteration(wass_dist_ABC_SSM, fig=fig, ax=ax, label="ABC-SSM",
+                                                       color_band_1="C2",
+                                                       color_line="C2", band_1=CI_level, alpha_1=0.3, alpha_2=0,
+                                                       alpha_3=0, fill_between=True)
         plot_confidence_bands_performance_vs_iteration(
             np.stack([wass_dist_exchange_SM] * max(ABC_FP_steps, ABC_SM_steps)),
             fig=fig, ax=ax,
             label="Exc-SM", color_band_1="blue", color_line="blue",
+            band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0, hatch='.',
+            fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(
+            np.stack([wass_dist_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)),
+            fig=fig, ax=ax,
+            label="Exc-SSM", color_band_1="blue", color_line="blue",
             band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0, hatch='.',
             fill_between=False, ls="--", ls_band_1=":")
         # ax.set_title("Wasserstein distance")
@@ -765,10 +934,17 @@ else:
         plot_confidence_bands_performance_vs_iteration(RMSE_post_mean_ABC_SM, fig=fig, ax=ax, label="ABC-SM",
                                                        color_band_1="C2", color_line="C2", band_1=CI_level, alpha_1=0.3,
                                                        alpha_2=0, alpha_3=0, fill_between=True)
+        plot_confidence_bands_performance_vs_iteration(RMSE_post_mean_ABC_SSM, fig=fig, ax=ax, label="ABC-SSM",
+                                                       color_band_1="C2", color_line="C2", band_1=CI_level, alpha_1=0.3,
+                                                       alpha_2=0, alpha_3=0, fill_between=True)
         # stack the following in order to have an horizontal plot:
         plot_confidence_bands_performance_vs_iteration(
             np.stack([RMSE_post_mean_exchange_SM] * max(ABC_FP_steps, ABC_SM_steps)), fig=fig, ax=ax,
             label="Exc-SM", color_band_1="blue", color_line="blue", band_1=CI_level, alpha_1=1, alpha_2=0,
+            alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        plot_confidence_bands_performance_vs_iteration(
+            np.stack([RMSE_post_mean_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)), fig=fig, ax=ax,
+            label="Exc-SSM", color_band_1="blue", color_line="blue", band_1=CI_level, alpha_1=1, alpha_2=0,
             alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("RMSE posterior mean")
@@ -783,6 +959,10 @@ else:
         plt.close()
 
         iteration = check_iteration_better_perf(wass_dist_ABC_FP, wass_dist_exchange_SM)
-        print("ABC-FP performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        print("ABC-FP performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_ABC_FP, wass_dist_exchange_SSM)
+        print("ABC-FP performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)
         iteration = check_iteration_better_perf(wass_dist_ABC_SM, wass_dist_exchange_SM)
-        print("ABC-SM performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        print("ABC-SM performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_ABC_SSM, wass_dist_exchange_SSM)
+        print("ABC-SSM performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)

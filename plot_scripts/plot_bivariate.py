@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.transforms import Bbox
 
 sys.path.append(os.getcwd())
-from src.functions import plot_bivariate_marginal_with_trace_samples
+from src.functions import plot_bivariate_marginal_with_trace_samples, subsample_trace
 
 parser = argparse.ArgumentParser()
 parser.add_argument('model', type=str, help="The statistical model to consider.")
@@ -19,9 +19,12 @@ parser.add_argument('--n_samples', type=int, default=10000, help='Number of samp
 parser.add_argument('--burnin_MCMC', type=int, default=10000, help='Burnin samples for exchange MCMC.')
 parser.add_argument('--root_folder', type=str, default=None)
 parser.add_argument('--observation_folder', type=str, default="observations")
-parser.add_argument('--inference_folder', type=str, default="Exc-SM")
+parser.add_argument('--inference_folder_SM', type=str, default="Exc-SM")
+parser.add_argument('--inference_folder_SSM', type=str, default="Exc-SSM")
 parser.add_argument('--subsample_size', type=int, default=1000,
                     help='Number of samples used for bivariate plots (if required).')
+parser.add_argument('--horizontal', action="store_true",
+                    help='If provided, use horizontal layout for plots; otherwise use vertical.')
 
 args = parser.parse_args()
 
@@ -33,8 +36,10 @@ n_samples = args.n_samples
 burnin_MCMC = args.burnin_MCMC
 results_folder = args.root_folder
 observation_folder = args.observation_folder
-inference_folder = args.inference_folder
+inference_folder_SM = args.inference_folder_SM
+inference_folder_SSM = args.inference_folder_SSM
 subsample_size = args.subsample_size
+horizontal = args.horizontal
 
 # checks
 if model not in ("gaussian", "beta", "gamma", "MA2", "AR2"):
@@ -52,7 +57,17 @@ if results_folder is None:
 
 results_folder = results_folder + '/'
 observation_folder = results_folder + observation_folder + '/'
-inference_folder = results_folder + inference_folder + '/'
+if inference_folder_SM in ["none", "None"]:
+    inference_folder_SM = None
+else:
+    inference_folder_SM = results_folder + inference_folder_SM + '/'
+if inference_folder_SSM in ["none", "None"]:
+    inference_folder_SSM = None
+else:
+    inference_folder_SSM = results_folder + inference_folder_SSM + '/'
+
+if inference_folder_SM is None and inference_folder_SSM is None:
+    raise RuntimeError("Need to provide the inference folder for at least one of SM or SSM")
 
 if sleep_time > 0:
     print("Wait for {} minutes...".format(sleep_time))
@@ -103,17 +118,40 @@ for obs_index in range(start_observation_index, n_observations):
     namefile_postfix = "_{}".format(obs_index + 1) + namefile_postfix_no_index
     x_obs = np.load(observation_folder + "x_obs{}.npy".format(obs_index + 1))
     theta_obs = np.load(observation_folder + "theta_obs{}.npy".format(obs_index + 1))
-    trace_true = np.load(observation_folder + "true_mcmc_trace{}.npy".format(obs_index + 1))
 
-    trace_exchange = np.load(inference_folder + "exchange_mcmc_trace{}.npy".format(obs_index + 1))
+    # load and then subsample the traces otherwise it takes too much
+    trace_true = np.load(observation_folder + "true_mcmc_trace{}.npy".format(obs_index + 1))
+    trace_true = subsample_trace(trace_true, size=subsample_size)
+
+    if inference_folder_SM is not None:
+        trace_exchange_SM = np.load(inference_folder_SM + "exchange_mcmc_trace{}.npy".format(obs_index + 1))
+        trace_exchange_SM = subsample_trace(trace_exchange_SM, size=subsample_size)
+    if inference_folder_SSM is not None:
+        trace_exchange_SSM = np.load(inference_folder_SSM + "exchange_mcmc_trace{}.npy".format(obs_index + 1))
+        trace_exchange_SSM = subsample_trace(trace_exchange_SSM, size=subsample_size)
 
     fig, ax = plot_bivariate_marginal_with_trace_samples(
-        theta_obs, trace_exchange, trace_true,
+        theta_obs, trace_exchange_SSM if inference_folder_SM is None else trace_exchange_SM,
+        trace_true, trace_approx_2=trace_exchange_SSM if inference_folder_SM is not None else None,
         thetarange=np.array([lower_bounds, upper_bounds]),
-        namefile=None, color="#40739E",
+        namefile=None, color="#40739E", thresh=0.15,
         figsize_vertical=5, title_size=16, label_size=16, param1_name=param_names[0],
-        param2_name=param_names[1], space_subplots=0.3, vertical=True)
+        param2_name=param_names[1], space_subplots=0.3, vertical=not horizontal)
 
-    namefile = inference_folder + "bivariate_marginals" + namefile_postfix + ".pdf"
-    bbox_inches = Bbox(np.array([[-0.25, 0.5], [4.7, 9.1]]))
+    # put titles:
+    if inference_folder_SM is not None:
+        ax[1].set_title("Exc-SM posterior", size=16)
+        if inference_folder_SSM is not None:
+            ax[2].set_title("Exc-SSM posterior", size=16)
+    else:
+        ax[1].set_title("Exc-SSM posterior", size=16)
+
+    namefile = results_folder + "exchange_bivariate_marginals" + namefile_postfix + ".pdf"
+    if not horizontal:
+        if inference_folder_SSM is None or inference_folder_SM is None:
+            bbox_inches = Bbox(np.array([[-0.25, 0.5], [4.7, 9.1]]))
+        else:
+            bbox_inches = Bbox(np.array([[-0.25, 0.5], [4.7, 14.1]]))
+    else:
+        bbox_inches = None
     plt.savefig(namefile, bbox_inches=bbox_inches)

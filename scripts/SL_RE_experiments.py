@@ -170,7 +170,7 @@ if technique == "SL":
     approx_lhd = SynLikelihood(statistic)
 elif technique == "RE":
     # for the RE approach: it is better to use pairwise combinations of the statistics in order to make comparison with
-    # SL fair; it also uses second order of them. Try with that.
+    # SL fair
     statistic = Identity(cross=True, previous_statistics=statistic,
                          degree=1)  # this should automatically use the pairwise comb.
     # when instantiating this, it takes additional parameters; does it simulate from the model immediately?
