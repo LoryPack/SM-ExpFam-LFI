@@ -8,15 +8,11 @@ from matplotlib.transforms import Bbox
 
 sys.path.append(os.getcwd())
 
-from src.utils_arma_example import extract_params_and_weights_from_journal_ar2, \
-    extract_params_and_weights_from_journal_ma2, extract_posterior_mean_from_journal_ar2, \
+from src.utils_arma_example import extract_posterior_mean_from_journal_ar2, \
     extract_posterior_mean_from_journal_ma2
-from src.utils_beta_example import extract_params_and_weights_from_journal_beta, \
-    extract_posterior_mean_from_journal_beta
-from src.utils_gaussian_example import extract_params_and_weights_from_journal_gaussian, \
-    extract_posterior_mean_from_journal_gaussian
-from src.utils_gamma_example import extract_params_and_weights_from_journal_gamma, \
-    extract_posterior_mean_from_journal_gamma
+from src.utils_beta_example import extract_posterior_mean_from_journal_beta
+from src.utils_gaussian_example import extract_posterior_mean_from_journal_gaussian
+from src.utils_gamma_example import extract_posterior_mean_from_journal_gamma
 from src.functions import try_loading_wass_RMSE_post_mean
 
 parser = argparse.ArgumentParser()
@@ -46,12 +42,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/"}
 
-extract_params_and_weights_fcns = {"gaussian": extract_params_and_weights_from_journal_gaussian,
-                                   "gamma": extract_params_and_weights_from_journal_gamma,
-                                   "beta": extract_params_and_weights_from_journal_beta,
-                                   "AR2": extract_params_and_weights_from_journal_ar2,
-                                   "MA2": extract_params_and_weights_from_journal_ma2}
-
 extract_posterior_mean_fcns = {"gaussian": extract_posterior_mean_from_journal_gaussian,
                                "gamma": extract_posterior_mean_from_journal_gamma,
                                "beta": extract_posterior_mean_from_journal_beta,
@@ -65,7 +55,6 @@ if results_folder is None:
 observation_folder = results_folder + args.observation_folder + "/"
 inferences_folder = results_folder + args.inferences_folder + "/"
 
-extract_params_and_weights_from_journal = extract_params_and_weights_fcns[model]
 extract_posterior_mean_from_journal = extract_posterior_mean_fcns[model]
 
 if model not in ("gaussian", "beta", "gamma", "MA2", "AR2"):

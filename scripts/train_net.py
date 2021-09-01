@@ -12,7 +12,7 @@ sys.path.append(os.getcwd())
 from abcpy.NN_utilities.utilities import save_net
 from abcpy.backends import BackendDummy, BackendMPI
 from abcpy.continuousmodels import Uniform
-from abcpy.statisticslearning import ExpFamStatistics
+from abcpy.statisticslearning import ExponentialFamilyScoreMatching as ExpFamStatistics
 from abcpy.statistics import Identity
 
 from src.utils_Lorenz95_example import StochLorenz95
@@ -451,7 +451,7 @@ if technique in ["SM", "SSM"]:
 
     statistics_learning = ExpFamStatistics(
         model=None, statistics_calc=Identity(), backend=BackendDummy(),  # backend and model are not used 
-        statistics_net=net_data_SM, parameters_net=net_theta_SM, parameters=theta_vect,
+        simulations_net=net_data_SM, parameters_net=net_theta_SM, parameters=theta_vect,
         simulations=samples_matrix, parameters_val=theta_vect_test, simulations_val=samples_matrix_test,
         scale_samples=scale_samples_flag, scale_parameters=scale_parameters_flag,
         lower_bound_simulations=lower_bound, upper_bound_simulations=upper_bound,

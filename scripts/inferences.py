@@ -601,7 +601,7 @@ for obs_index in range(start_observation_index, n_observations):
                                                 thetarange=np.array([lower_bounds, upper_bounds]))
     if plot_bivariate_densities:
         fig, ax = plot_bivariate_marginal_with_trace_samples(
-            theta_obs, params, trace_true if true_posterior_available else None,
+            theta_obs, params, trace_true_subsample if true_posterior_available else None,
             weights_trace_approx=weights if inference_technique == "ABC" else None,
             thetarange=np.array([lower_bounds, upper_bounds]),
             color="#40739E", figsize_vertical=5, title_size=16, label_size=16, param1_name=param_names[0],

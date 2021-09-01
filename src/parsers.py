@@ -66,7 +66,8 @@ def parser_approx_likelihood_approach(default_root_folder, default_nets_folder="
     """Returns a parser with some arguments. It is still possible to add gurther arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument('technique', type=str,
-                        help="The technique to use; can be 'SM' (exponential family), or 'FP'. The latter does not work with exchange.")
+                        help="The technique to use; can be 'SM' or 'SSM' (both using exponential family),"
+                        "or 'FP'. The latter does not work with exchange.")
     parser.add_argument('model', type=str, help="The statistical model to consider.")
     parser.add_argument('--inference_technique', type=str, default="exchange",
                         help="Inference approach; can be exchange or ABC.")
