@@ -67,11 +67,12 @@ np.random.seed(seed)
 rng = np.random.RandomState(seed)
 
 # checks
-model = "Lorenz95"
+if model not in ("Lorenz95", "fullLorenz95"):
+    raise NotImplementedError
 
 print("{} model.".format(model))
 # set up the default root folder and other values
-default_root_folder = {"Lorenz95": "results/Lorenz95/"}
+default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if compare_with not in ("Exc-SM", "Exc-SSM", "ABC-SM", "ABC-SSM"):
@@ -89,7 +90,7 @@ if sleep_time > 0:
     sleep(60 * sleep_time)
     print("Done waiting!")
 
-if model in "Lorenz95":
+if model in ("Lorenz95", "fullLorenz95"):
     # these values are not used really:
     theta1 = 2
     theta2 = 0.5
@@ -127,7 +128,7 @@ if compute_errors:
         ABC_FP_namefile_postfix = f"_{obs_index + 1}" + ABC_FP_namefile_postfix_no_index
         ABC_SM_namefile_postfix = f"_{obs_index + 1}" + ABC_SM_namefile_postfix_no_index
         # namefile_postfix = "_{}".format(obs_index + 1) + namefile_postfix_no_index
-        if model == "Lorenz95":
+        if model == "fullLorenz95":
             x_obs = np.load(observation_folder + "x_obs{}.npy".format(obs_index + 1))
         else:
             x_obs = np.load(observation_folder + "timeseriers_obs{}.npy".format(obs_index + 1))

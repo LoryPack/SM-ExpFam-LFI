@@ -36,7 +36,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/"}
+                       "Lorenz95": "results/Lorenz95/",
+                       "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 
@@ -97,8 +98,7 @@ elif model == "MA2":
 
     theta_vect, samples_matrix = generate_training_samples_ABC_model(arma_abc_model, n_observations, seed=seed)
 
-elif model == "Lorenz95":
-    statistics = LorenzLargerStatistics()
+elif model in ["Lorenz95", "fullLorenz95"]:
 
     theta1_min = 1.4
     theta1_max = 2.2
@@ -117,7 +117,10 @@ elif model == "Lorenz95":
 
     lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=4, n_timestep_per_time_unit=30, name='lorenz')
     theta_vect, samples_matrix = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
-    statistics_matrix = statistics.statistics([sample for sample in samples_matrix[:]])
+
+    if model == "Lorenz95":
+        statistics = LorenzLargerStatistics()
+        statistics_matrix = statistics.statistics([sample for sample in samples_matrix[:]])
 
 for obs_index in range(start_observation_index, n_observations):
     print("Observation {}".format(obs_index + 1))
@@ -141,7 +144,7 @@ for obs_index in range(start_observation_index, n_observations):
     elif model == "MA2":
         logl = LogLike(ma2_log_lik_for_mcmc, x_obs)
 
-    if not model == "Lorenz95":
+    if not model in ["Lorenz95", "fullLorenz95"]:
         if model == "gaussian":
             with pm.Model() as model:
                 mu = pm.Uniform('mu', mu_bounds[0], mu_bounds[1])

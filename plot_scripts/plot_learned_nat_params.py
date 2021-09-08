@@ -42,7 +42,7 @@ batch_norm_last_layer = not args.no_bn
 affine_batch_norm = args.affine_bn
 seed = args.seed
 
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95"):
     raise NotImplementedError
 
 print("{} model.".format(model))
@@ -51,7 +51,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/"}
+                       "Lorenz95": "results/Lorenz95/",
+                       "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 
@@ -114,9 +115,7 @@ elif model == "AR2":
     arma_abc_model = ARMAmodel([ar1, ar2], num_AR_params=2, num_MA_params=0, size=arma_size)
     theta_vect, _ = generate_training_samples_ABC_model(arma_abc_model, n_observations, seed=seed)
 
-elif model == "Lorenz95":
-    # we follow here the same setup as in the ratio estimation paper. Then we only infer theta_1, theta_2 and keep
-    # fixed sigma_3 and phi. We moreover change prior range and use the Hakkarainen statistics
+elif model in ["Lorenz95", "fullLorenz95", ]:
     theta1_min = 1.4
     theta1_max = 2.2
     theta2_min = 0
@@ -159,6 +158,13 @@ elif model == "Lorenz95":
     nonlinearity = torch.nn.Softplus
     output_size = 4
     net_theta_SM_architecture = createDefaultNN(4, output_size, [30, 50, 50, 30], nonlinearity=nonlinearity(),
+                                                batch_norm_last_layer=batch_norm_last_layer,
+                                                affine_batch_norm=affine_batch_norm)
+
+elif model == "fullLorenz95":
+    nonlinearity = torch.nn.Softplus
+    output_size = 4
+    net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm)
 

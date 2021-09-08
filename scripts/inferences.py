@@ -36,7 +36,7 @@ from src.utils_gamma_example import TrueSummariesComputationGamma, IidGamma, \
     extract_params_and_weights_from_journal_gamma, extract_posterior_mean_from_journal_gamma, \
     generate_gamma_training_samples
 from src.utils_Lorenz95_example import extract_params_and_weights_from_journal_Lorenz95, \
-    extract_posterior_mean_from_journal_Lorenz95, StochLorenz95_with_statistics
+    extract_posterior_mean_from_journal_Lorenz95, StochLorenz95_with_statistics, StochLorenz95
 from src.parsers import parser_approx_likelihood_approach
 
 from abcpy.continuousmodels import Uniform
@@ -92,10 +92,11 @@ bridging_exch_MCMC = args.bridging_exch_MCMC
 np.random.seed(seed)
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "SSM", "FP"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95") or technique not in (
+        "SM", "SSM", "FP", "true"):
     raise NotImplementedError
 
-true_posterior_available = model not in ("Lorenz95",)
+true_posterior_available = model not in ("Lorenz95", "fullLorenz95")
 
 if inference_technique not in ("exchange", "ABC"):
     raise NotImplementedError
@@ -107,7 +108,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/"}
+                       "Lorenz95": "results/Lorenz95/",
+                       "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if nets_folder is None:
@@ -269,10 +271,7 @@ elif model == "MA2":
     extract_params_and_weights_from_journal = extract_params_and_weights_from_journal_ma2
     extract_posterior_mean_from_journal = extract_posterior_mean_from_journal_ma2
 
-elif model == "Lorenz95":
-    # we follow here the same setup as in the ratio estimation paper. Then we only infer theta_1, theta_2 and keep
-    # fixed sigma_3 and phi. We moreover change prior range and use the Hakkarainen statistics
-
+elif model in ["Lorenz95", "fullLorenz95", ]:
     theta1_min = 1.4
     theta1_max = 2.2
     theta2_min = 0
@@ -298,8 +297,12 @@ elif model == "Lorenz95":
     # sigma_e = Exponential([[sigma_e_rate]], name='sigma_e')
     sigma_e = Uniform([[sigma_e_min], [sigma_e_max]], name='sigma_e')
     phi = Uniform([[phi_min], [phi_max]], name='phi')
-    ABC_model = StochLorenz95_with_statistics([theta1, theta2, sigma_e, phi], time_units=4,
-                                              n_timestep_per_time_unit=30, name='lorenz')
+    if model == "Lorenz95":
+        ABC_model = StochLorenz95_with_statistics([theta1, theta2, sigma_e, phi], time_units=4,
+                                                  n_timestep_per_time_unit=30, name='lorenz')
+    else:
+        ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=4,
+                                  n_timestep_per_time_unit=30, name='lorenz')
 
     print("Generate test data:")
     if inference_technique == "ABC":
@@ -384,6 +387,22 @@ elif model == "Lorenz95":
                                                 affine_batch_norm=affine_batch_norm)
     net_FP_architecture = createDefaultNN(23, 4, [70, 120, 120, 70, 20],
                                           nonlinearity=torch.nn.ReLU())  # I am using relu here
+
+elif model == "fullLorenz95":
+    nonlinearity = torch.nn.Softplus
+    phi_net_data_SM_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
+    rho_net_data_SM_architecture = createDefaultNNWithDerivatives(60, 5, [80, 100, 80], nonlinearity=nonlinearity)
+    net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                       order=1, number_timeseries=40)
+
+    phi_net_FP_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
+    rho_net_FP_architecture = createDefaultNNWithDerivatives(60, 4, [80, 100, 80], nonlinearity=nonlinearity)
+    net_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
+                                                  order=1, number_timeseries=40)
+
+    net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
+                                                batch_norm_last_layer=batch_norm_last_layer,
+                                                affine_batch_norm=affine_batch_norm)
 
 # load nets
 if technique in ["SM", "SSM"]:

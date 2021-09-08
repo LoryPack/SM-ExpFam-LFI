@@ -60,7 +60,8 @@ save_net_at_each_epoch = args.save_net_at_each_epoch
 constraint_additional = args.constraint_additional
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95") or technique not in ("SM", "SSM", "FP"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95") or technique not in (
+"SM", "SSM", "FP"):
     raise NotImplementedError
 
 backend = BackendMPI() if use_MPI else BackendDummy()
@@ -75,7 +76,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/"}
+                       "Lorenz95": "results/Lorenz95/",
+                       "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if nets_folder is None:
@@ -281,10 +283,9 @@ elif model == "MA2":
     scale_samples_flag = False
     scale_parameters_flag = False
 
-elif model == "Lorenz95":
+elif model in ["Lorenz95", "fullLorenz95", ]:
     # here use a larger set of summaries (23). Same parameter range for theta1, theta2 as for Hakk stats experiment,
     # but here we also add sigma and phi parameters.
-    statistics = LorenzLargerStatistics()
 
     theta1_min = 1.4
     theta1_max = 2.2
@@ -324,37 +325,51 @@ elif model == "Lorenz95":
             np.save(datasets_folder + "theta_vect_test.npy", theta_vect_test)
             np.save(datasets_folder + "samples_matrix_test.npy", samples_matrix_test)
 
-        print("Computing statistics...")
-        start = time()
-        samples_matrix = statistics.statistics([sample for sample in samples_matrix[:, 0]])
-        samples_matrix_test = statistics.statistics([sample for sample in samples_matrix_test[:, 0]])
-        print("Done; it took {:.2f} seconds".format(time() - start))
-        # now, what is the range of these statistics? In fact I may need to rescale them to apply score matching.
-        # The second summary is a variance -> >=0. All the other of the 6 original summaries are real (covariances).
-        # Therefore, the cross combinations are all real. Need only to scale the second one in principle. However,
-        # the probability of the variance being =0 is 0. Thus, the integration by parts would still be valid -> no
-        # need to rescale here!
-        if save_train_data:  # we save the statistics as well, as they are quite expensive to compute.
-            np.save(datasets_folder + "statistics.npy", samples_matrix)
-            np.save(datasets_folder + "statistics_test.npy", samples_matrix_test)
+        if model == "Lorenz95":
+            statistics = LorenzLargerStatistics()
+            print("Computing statistics...")
+            start = time()
+            samples_matrix = statistics.statistics([sample for sample in samples_matrix[:, 0]])
+            samples_matrix_test = statistics.statistics([sample for sample in samples_matrix_test[:, 0]])
+            print("Done; it took {:.2f} seconds".format(time() - start))
+            # now, what is the range of these statistics? In fact I may need to rescale them to apply score matching.
+            # The second summary is a variance -> >=0. All the other of the 6 original summaries are real (covariances).
+            # Therefore, the cross combinations are all real. Need only to scale the second one in principle. However,
+            # the probability of the variance being =0 is 0. Thus, the integration by parts would still be valid -> no
+            # need to rescale here!
+            if save_train_data:  # we save the statistics as well, as they are quite expensive to compute.
+                np.save(datasets_folder + "statistics.npy", samples_matrix)
+                np.save(datasets_folder + "statistics_test.npy", samples_matrix_test)
     else:
         theta_vect = np.load(datasets_folder + "theta_vect.npy", allow_pickle=True)
         theta_vect_test = np.load(datasets_folder + "theta_vect_test.npy", allow_pickle=True)
-        print("Loading statistics")
-        samples_matrix = np.load(datasets_folder + "statistics.npy", allow_pickle=True)
-        samples_matrix_test = np.load(datasets_folder + "statistics_test.npy", allow_pickle=True)
-        print(samples_matrix.shape)
+        if model == "Lorenz95":    
+            print("Loading statistics")
+            samples_matrix = np.load(datasets_folder + "statistics.npy", allow_pickle=True)
+            samples_matrix_test = np.load(datasets_folder + "statistics_test.npy", allow_pickle=True)
+            print(samples_matrix.shape)
+        else: 
+            print("Loading data")
+            samples_matrix = np.load(datasets_folder + "samples_matrix.npy", allow_pickle=True)
+            samples_matrix_test = np.load(datasets_folder + "samples_matrix_test.npy", allow_pickle=True)
+            print(samples_matrix.shape)
         print("Loaded data; {} training samples, {} test samples".format(theta_vect.shape[0], theta_vect_test.shape[0]))
 
-    if constraint_additional:
-        lower_bound = np.array([None] * 23)
-        lower_bound[1] = 0
-        upper_bound = np.array([None] * 23)
+    if model =="Lorenz95":
+        if constraint_additional:
+            lower_bound = np.array([None] * 23)
+            lower_bound[1] = 0
+            upper_bound = np.array([None] * 23)
+        else:
+            lower_bound = np.array([None] * 23)
+            upper_bound = np.array([None] * 23)
+        scaler_data_FP = MinMaxScaler().fit(samples_matrix)
+        scale_samples_flag = True
     else:
-        lower_bound = np.array([None] * 23)
-        upper_bound = np.array([None] * 23)
-    scaler_data_FP = MinMaxScaler().fit(samples_matrix)
-    scale_samples_flag = True
+        lower_bound = np.array([None] * 4800)
+        upper_bound = np.array([None] * 4800)
+        scaler_data_FP = DummyScaler()
+        scale_samples_flag = False
     scale_parameters_flag = True
 
 # update the n samples with the actual ones (if we loaded them from saved datasets).
@@ -435,6 +450,23 @@ elif model == "Lorenz95":
                                                 batch_norm_last_layer_momentum=momentum)
     net_FP_architecture = createDefaultNN(23, 4, [70, 120, 120, 70, 20],
                                           nonlinearity=torch.nn.ReLU())  # I am using relu here
+
+elif model == "fullLorenz95":
+    nonlinearity = torch.nn.Softplus
+    phi_net_data_SM_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
+    rho_net_data_SM_architecture = createDefaultNNWithDerivatives(60, 5, [80, 100, 80], nonlinearity=nonlinearity)
+    net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                       order=1, number_timeseries=40)
+
+    phi_net_FP_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
+    rho_net_FP_architecture = createDefaultNNWithDerivatives(60, 4, [80, 100, 80], nonlinearity=nonlinearity)
+    net_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
+                                                  order=1, number_timeseries=40)
+
+    net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
+                                                batch_norm_last_layer=batch_norm_last_layer,
+                                                affine_batch_norm=affine_batch_norm,
+                                                batch_norm_last_layer_momentum=momentum)
 
 # TRAIN THE NETS:
 start = time()

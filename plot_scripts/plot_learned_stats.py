@@ -45,7 +45,7 @@ affine_batch_norm = args.affine_bn
 FP = args.FP
 seed = args.seed
 
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95"):
     raise NotImplementedError
 
 print("{} model.".format(model))
@@ -54,7 +54,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/"}
+                       "Lorenz95": "results/Lorenz95/",
+                       "fullLorenz95": "results/fullLorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 
@@ -73,7 +74,7 @@ if model == "beta":
     alpha_bounds = [1, 3]
     beta_bounds = [1, 3]
 
-    theta_vect, samples_matrix = generate_beta_training_samples(n_theta=n_observations, 
+    theta_vect, samples_matrix = generate_beta_training_samples(n_theta=n_observations,
                                                                 size_iid_samples=10, seed=seed,
                                                                 alpha_bounds=alpha_bounds,
                                                                 beta_bounds=beta_bounds)
@@ -84,7 +85,7 @@ elif model == "gamma":
     k_bounds = [1, 3]
     theta_bounds = [1, 3]
 
-    theta_vect, samples_matrix = generate_gamma_training_samples(n_theta=n_observations, 
+    theta_vect, samples_matrix = generate_gamma_training_samples(n_theta=n_observations,
                                                                  size_iid_samples=10, seed=seed, k_bounds=k_bounds,
                                                                  theta_bounds=theta_bounds)
     true_suff_stat_test = TrueSummariesComputationGamma()(samples_matrix.reshape(-1, 10)).numpy()
@@ -93,7 +94,7 @@ elif model == "gaussian":
     mu_bounds = [-10, 10]
     sigma_bounds = [1, 10]
 
-    theta_vect, samples_matrix = generate_gaussian_training_samples(n_theta=n_observations, 
+    theta_vect, samples_matrix = generate_gaussian_training_samples(n_theta=n_observations,
                                                                     size_iid_samples=10, seed=seed, mu_bounds=mu_bounds,
                                                                     sigma_bounds=sigma_bounds)
     true_suff_stat_test = TrueSummariesComputationGaussian()(samples_matrix.reshape(-1, 10)).numpy()
@@ -119,11 +120,7 @@ elif model == "AR2":
     arma_abc_model = ARMAmodel([ar1, ar2], num_AR_params=2, num_MA_params=0, size=arma_size)
     theta_vect, samples_matrix = generate_training_samples_ABC_model(arma_abc_model, n_observations, seed=seed)
 
-elif model == "Lorenz95":
-    # we follow here the same setup as in the ratio estimation paper. Then we only infer theta_1, theta_2 and keep
-    # fixed sigma_3 and phi. We moreover change prior range and use the Hakkarainen statistics
-    statistics = LorenzLargerStatistics(degree=1, cross=False)  # add cross-terms
-
+elif model in ["Lorenz95", "fullLorenz95", ]:
     theta1_min = 1.4
     theta1_max = 2.2
     theta2_min = 0
@@ -141,8 +138,10 @@ elif model == "Lorenz95":
 
     lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=4, n_timestep_per_time_unit=30, name='lorenz')
     theta_vect, samples_matrix = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
+    if model == "Lorenz95":
+        statistics = LorenzLargerStatistics(degree=1, cross=False)
+        samples_matrix = statistics.statistics([sample for sample in samples_matrix])  # 21-dimensional stat
 
-    samples_matrix = statistics.statistics([sample for sample in samples_matrix])  # 21-dimensional stat
     print(samples_matrix.shape)
 
 if model in ("gaussian", "beta", "gamma"):
@@ -183,6 +182,18 @@ elif model == "Lorenz95":
                                                batch_norm_last_layer=batch_norm_last_layer,
                                                affine_batch_norm=affine_batch_norm)
     net_data_FP_architecture = net_data_SM_architecture
+elif model == "fullLorenz95":
+    nonlinearity = torch.nn.Softplus
+    output_size = 5 if not FP else 4
+    phi_net_data_SM_architecture = createDefaultNN(80, 20, [120, 160, 120], nonlinearity=nonlinearity())
+    rho_net_data_SM_architecture = createDefaultNN(60, 5, [80, 100, 80], nonlinearity=nonlinearity())
+    net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                       order=1, number_timeseries=40)
+
+    phi_net_FP_architecture = createDefaultNN(80, 20, [120, 160, 120], nonlinearity=nonlinearity())
+    rho_net_FP_architecture = createDefaultNN(60, 4, [80, 100, 80], nonlinearity=nonlinearity())
+    net_data_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
+                                                  order=1, number_timeseries=40)
 
 if FP:
     scaler_data_FP = pickle.load(open(nets_folder + "scaler_data_FP.pkl", "rb"))
