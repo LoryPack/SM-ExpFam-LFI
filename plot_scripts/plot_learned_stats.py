@@ -177,7 +177,7 @@ elif model == "AR2":
     net_data_FP_architecture = net_data_SM_architecture
 
 elif model == "Lorenz95":
-    nonlinearity = torch.nn.Softplus
+    nonlinearity = torch.nn.ReLU if FP else torch.nn.Softplus
     output_size = 5 if not FP else 4
     net_data_SM_architecture = createDefaultNN(23, output_size, [70, 120, 120, 70, 20], nonlinearity=nonlinearity(),
                                                batch_norm_last_layer=batch_norm_last_layer,

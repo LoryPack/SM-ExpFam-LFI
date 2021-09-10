@@ -307,7 +307,6 @@ elif model == "Lorenz95":
         samples_matrix_test = torch.tensor(samples_matrix_test, requires_grad=False, dtype=torch.float)
     else:
         theta_vect_test, samples_matrix_test = None, None
-    # compute statistics here as well:
 
     TrueSummariesComputation = None
     extract_params_and_weights_from_journal = extract_params_and_weights_from_journal_Lorenz95
@@ -611,7 +610,7 @@ for obs_index in range(start_observation_index, n_observations):
         plt.close()
     if plot_journal and inference_technique == "ABC":
         jrnl.plot_posterior_distr(path_to_save=inference_folder + "joint_posterior" + namefile_postfix + ".png",
-                                  true_parameter_values=theta_obs)
+                                  true_parameter_values=theta_obs, show_samples=False)
     if plot_trace_flag and inference_technique == "exchange":
         if generate_new_MCMC:
             plot_trace(trace_exchange, theta_dim, param_names,

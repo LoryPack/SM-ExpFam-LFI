@@ -17,18 +17,20 @@ from abcpy.output import Journal
 from src.utils_Lorenz95_example import StochLorenz95
 
 parser = argparse.ArgumentParser()
-parser.add_argument('compare_with', type=str, help="With which approach to compare ABC_FP; can be exc or ABC. ")
+parser.add_argument('model', type=str, help="The statistical model to consider.")
+parser.add_argument('compare_with', type=str, help="With which approach to compare ABC_FP; can be "
+                                                   "Exc-SM, Exc-SSM, ABC-SM or ABC-SSM. ")
 parser.add_argument('--sleep', type=float, default=0, help='Minutes to sleep before starting')
 parser.add_argument('--start_observation_index', type=int, default=0, help='Index to start from')
 parser.add_argument('--n_observations', type=int, default=100, help='Total number of observations.')
 parser.add_argument('--root_folder', type=str, default=None)
 parser.add_argument('--observation_folder', type=str, default="observations")
 parser.add_argument('--exchange_folder', type=str, default="inferences_ssm")
-parser.add_argument('--ABC_FP_folder', type=str, default="ABC_FP")
+parser.add_argument('--ABC_FP_folder', type=str, default="ABC-FP")
 parser.add_argument('--ABC_FP_algorithm', type=str, default="SABC")
 parser.add_argument('--ABC_FP_n_samples', type=int, default=1000)
 parser.add_argument('--ABC_FP_steps', type=int, default=100)
-parser.add_argument('--ABC_SM_folder', type=str, default="ABC_SM")
+parser.add_argument('--ABC_SM_folder', type=str, default="ABC-SM")
 parser.add_argument('--ABC_SM_algorithm', type=str, default="SABC")
 parser.add_argument('--ABC_SM_n_samples', type=int, default=1000)
 parser.add_argument('--ABC_SM_steps', type=int, default=100)
@@ -72,7 +74,7 @@ print("{} model.".format(model))
 default_root_folder = {"Lorenz95": "results/Lorenz95/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
-if compare_with not in ("ABC", "exc"):
+if compare_with not in ("Exc-SM", "Exc-SSM", "ABC-SM", "ABC-SSM"):
     raise RuntimeError
 
 results_folder = results_folder + '/'
@@ -80,7 +82,7 @@ observation_folder = results_folder + observation_folder + '/'
 exchange_folder = results_folder + exchange_folder + '/'
 ABC_FP_folder = results_folder + ABC_FP_folder + '/'
 ABC_SM_folder = results_folder + ABC_SM_folder + '/'
-my_technique_folder = exchange_folder if compare_with == "exc" else ABC_SM_folder
+my_technique_folder = exchange_folder if "exc" in compare_with else ABC_SM_folder
 
 if sleep_time > 0:
     print("Wait for {} minutes...".format(sleep_time))
@@ -100,7 +102,7 @@ if model in "Lorenz95":
     extract_params_and_weights_from_journal = extract_params_and_weights_from_journal_Lorenz95
 
 ABC_FP_namefile_postfix_no_index = f"_{ABC_FP_algorithm}_FP_steps_{ABC_FP_steps}_n_samples_{ABC_FP_n_samples}"
-ABC_SM_namefile_postfix_no_index = f"_{ABC_SM_algorithm}_SM_steps_{ABC_SM_steps}_n_samples_{ABC_SM_n_samples}"
+ABC_SM_namefile_postfix_no_index = f"_{ABC_SM_algorithm}_{'SSM' if 'SSM' in compare_with else 'SM'}_steps_{ABC_SM_steps}_n_samples_{ABC_SM_n_samples}"
 
 # here instead is with posterior expectation of errors.
 #  E[||y_0 - y(theta)||_2^2]
@@ -132,7 +134,7 @@ if compute_errors:
         theta_obs = np.load(observation_folder + "theta_obs{}.npy".format(obs_index + 1))
 
         # need to load now 1) my own method and 2) the ABC_FP method
-        if compare_with == "exc":
+        if "exc" in compare_with:
             trace_exchange = np.load(exchange_folder + f"exchange_mcmc_trace{obs_index + 1}.npy")
             # subsample trace:
             trace_exchange_subsampled = subsample_trace(trace_exchange, size=n_post_samples_exchange)
@@ -164,7 +166,7 @@ if compute_errors:
         ABC_model._set_initial_state(initial_state=x_obs.reshape(40, -1)[:, -1])
         future_evolution_true_param = ABC_model.forward_simulate(theta_obs, k=1, rng=rng)[0].reshape(40, -1)
         # loops over the post samples:
-        if compare_with == "exc":
+        if "exc" in compare_with:
             for post_sample in range(n_post_samples_exchange):
                 # evolve the model with all different posterior samples
                 future_evolution_exchange = \
@@ -194,7 +196,7 @@ if compute_errors:
         mean_future_evolution_ABC_FP = np.einsum('i,ijk->jk', weights_ABC_FP, future_evolution_ABC_FP_array)  # 2)
         predictive_error_mean_future_evolution_ABC_FP = np.linalg.norm(
             future_evolution_true_param - mean_future_evolution_ABC_FP, axis=0)  # 2)
-        if compare_with == "exc":
+        if "exc" in compare_with:
             mean_predictive_error_exchange = np.mean(predictive_error_exchange, axis=0)  # 1)
             mean_future_evolution_exchange = np.mean(future_evolution_exchange_array, axis=0)  # 2)
             predictive_error_mean_future_evolution_exchange = np.linalg.norm(
@@ -207,7 +209,7 @@ if compute_errors:
                 future_evolution_true_param - mean_future_evolution_ABC_SM, axis=0)  # 2)
 
         # compute the relative errors:
-        if compare_with == "exc":
+        if "exc" in compare_with:
             relative_errors_post_exp[obs_index - start_observation_index] = \
                 (mean_predictive_error_ABC_FP - mean_predictive_error_exchange) / mean_predictive_error_ABC_FP  # 1)
         else:
@@ -218,10 +220,7 @@ if compute_errors:
 
 fig, ax = plot_confidence_bands_performance_vs_iteration(relative_errors_post_exp.transpose(1, 0), start_step=0)
 ax.axhline(0, color="blue")
-if compare_with == "exc":
-    ax.set_title("Exc-SM")
-else:
-    ax.set_title("ABC-SM")
+ax.set_title(compare_with)
 ax.set_xlabel(r"$t$")
 ax.set_xticks([0, 14, 29, 44, 59])
 ax.set_xticklabels([4, 4.5, 5, 5.5, 6])

@@ -310,8 +310,6 @@ elif model == "Lorenz95":
         theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
 
         print("Data generation took {:.2f} seconds".format(time() - start))
-        samples_matrix = np.expand_dims(samples_matrix, 1)
-        samples_matrix_test = np.expand_dims(samples_matrix_test, 1)
 
         if save_train_data:
             # save data before scalers are applied.
@@ -322,9 +320,8 @@ elif model == "Lorenz95":
 
         print("Computing statistics...")
         start = time()
-        samples_matrix = np.expand_dims(statistics.statistics([sample for sample in samples_matrix[:, 0]]), 1)
-        samples_matrix_test = np.expand_dims(
-            statistics.statistics([sample for sample in samples_matrix_test[:, 0]]), 1)
+        samples_matrix = statistics.statistics([sample for sample in samples_matrix[:, 0]])
+        samples_matrix_test = statistics.statistics([sample for sample in samples_matrix_test[:, 0]])
         print("Done; it took {:.2f} seconds".format(time() - start))
         # now, what is the range of these statistics? In fact I may need to rescale them to apply score matching.
         # The second summary is a variance -> >=0. All the other of the 6 original summaries are real (covariances).
@@ -350,7 +347,7 @@ elif model == "Lorenz95":
     else:
         lower_bound = np.array([None] * 23)
         upper_bound = np.array([None] * 23)
-    scaler_data_FP = MinMaxScaler().fit(samples_matrix[:, 0, :])
+    scaler_data_FP = MinMaxScaler().fit(samples_matrix)
     scale_samples_flag = True
     scale_parameters_flag = True
 
@@ -501,7 +498,7 @@ if technique == "FP":
         pickle.dump(scaler_data_FP, open(nets_folder + "scaler_data_FP.pkl", "wb"))
 training_time = time() - start
 
-plot_losses(loss_list, test_loss_list, nets_folder + "SM_losses.png")
+plot_losses(loss_list, test_loss_list, nets_folder + "losses.png")
 np.save(nets_folder + "loss.npy", np.array(loss_list))
 np.save(nets_folder + "test_loss.npy", np.array(test_loss_list))
 
