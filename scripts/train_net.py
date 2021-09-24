@@ -14,12 +14,12 @@ from abcpy.backends import BackendDummy, BackendMPI
 from abcpy.continuousmodels import Uniform
 from abcpy.statisticslearning import ExponentialFamilyScoreMatching as ExpFamStatistics
 from abcpy.statistics import Identity
+from abcpy.inferences import DrawFromPrior
 
 from src.utils_Lorenz95_example import StochLorenz95
 
 from src.CDE_training_routines import FP_training_routine
-from src.functions import scale_samples, plot_losses, save_dict_to_json, \
-    DummyScaler, DrawFromPrior
+from src.functions import scale_samples, plot_losses, save_dict_to_json, DummyScaler
 from src.networks import createDefaultNN, createDefaultNNWithDerivatives, create_PEN_architecture
 from src.utils_arma_example import ARMAmodel
 from src.utils_gaussian_example import generate_gaussian_training_samples
@@ -217,8 +217,10 @@ elif model == "AR2":
         print("Generating data... ({} samples in total)".format(n_samples_training + n_samples_evaluation))
         start = time()
         draw_from_prior = DrawFromPrior([arma_abc_model], backend=backend, seed=seed)
-        theta_vect, samples_matrix = draw_from_prior.sample_in_chunks(n_samples_training)
-        theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
+        theta_vect, samples_matrix = draw_from_prior.sample_par_sim_pairs(n_samples_training, 1)
+        theta_vect_test, samples_matrix_test = draw_from_prior.sample_par_sim_pairs(n_samples_evaluation, 1)
+        samples_matrix = samples_matrix.reshape(samples_matrix.shape[0], samples_matrix.shape[-1])
+        samples_matrix_test = samples_matrix_test.reshape(samples_matrix_test.shape[0], samples_matrix_test.shape[-1])
         print("Data generation took {:.2f} seconds".format(time() - start))
         if save_train_data:
             # save data before scalers are applied.
@@ -255,8 +257,10 @@ elif model == "MA2":
         print("Generating data... ({} samples in total)".format(n_samples_training + n_samples_evaluation))
         start = time()
         draw_from_prior = DrawFromPrior([arma_abc_model], backend=backend, seed=seed)
-        theta_vect, samples_matrix = draw_from_prior.sample_in_chunks(n_samples_training)
-        theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
+        theta_vect, samples_matrix = draw_from_prior.sample_par_sim_pairs(n_samples_training, 1)
+        theta_vect_test, samples_matrix_test = draw_from_prior.sample_par_sim_pairs(n_samples_evaluation, 1)
+        samples_matrix = samples_matrix.reshape(samples_matrix.shape[0], samples_matrix.shape[-1])
+        samples_matrix_test = samples_matrix_test.reshape(samples_matrix_test.shape[0], samples_matrix_test.shape[-1])
         print("Data generation took {:.2f} seconds".format(time() - start))
         if save_train_data:
             # save data before scalers are applied.
@@ -304,10 +308,12 @@ elif model == "Lorenz95":
         start = time()
         # give seed here; we do not put anxy scaler for the timeseries data
         draw_from_prior = DrawFromPrior([lorenz], backend=backend, seed=seed)
-        theta_vect, samples_matrix = draw_from_prior.sample_in_chunks(n_samples_training)
+        theta_vect, samples_matrix = draw_from_prior.sample_par_sim_pairs(n_samples_training, 1)
+        samples_matrix = samples_matrix.reshape(samples_matrix.shape[0], samples_matrix.shape[-1])
         print(samples_matrix.shape, sys.getsizeof(samples_matrix))
         # Size of the tensor: 3 MB for the train set with 200 observations.Then 20000 -> 300 MB. Need to save that.
-        theta_vect_test, samples_matrix_test = draw_from_prior.sample_in_chunks(n_samples_evaluation)
+        theta_vect_test, samples_matrix_test = draw_from_prior.sample_par_sim_pairs(n_samples_evaluation, 1)
+        samples_matrix_test = samples_matrix_test.reshape(samples_matrix_test.shape[0], samples_matrix_test.shape[-1])
 
         print("Data generation took {:.2f} seconds".format(time() - start))
 
