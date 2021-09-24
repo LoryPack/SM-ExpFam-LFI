@@ -60,8 +60,10 @@ save_net_at_each_epoch = args.save_net_at_each_epoch
 constraint_additional = args.constraint_additional
 
 # checks
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95") or technique not in (
-"SM", "SSM", "FP"):
+if model not in (
+        "gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95",
+        "fullLorenz95smaller") or technique not in (
+        "SM", "SSM", "FP"):
     raise NotImplementedError
 
 backend = BackendMPI() if use_MPI else BackendDummy()
@@ -77,7 +79,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
                        "Lorenz95": "results/Lorenz95/",
-                       "fullLorenz95": "results/fullLorenz95/"}
+                       "fullLorenz95": "results/fullLorenz95/",
+                       "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if nets_folder is None:
@@ -283,7 +286,7 @@ elif model == "MA2":
     scale_samples_flag = False
     scale_parameters_flag = False
 
-elif model in ["Lorenz95", "fullLorenz95", ]:
+if "Lorenz95" in model:
     # here use a larger set of summaries (23). Same parameter range for theta1, theta2 as for Hakk stats experiment,
     # but here we also add sigma and phi parameters.
 
@@ -303,11 +306,13 @@ elif model in ["Lorenz95", "fullLorenz95", ]:
     phi = Uniform([[phi_min], [phi_max]], name='phi')
 
     if not load_train_data:
-        lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=4, n_timestep_per_time_unit=30, name='lorenz')
+        lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=1.5 if model == "fullLorenz95smaller" else 4,
+                               n_timestep_per_time_unit=30, K=8 if model == "fullLorenz95smaller" else 40,
+                               name='lorenz')
 
         print("Generating data... ({} samples in total)".format(n_samples_training + n_samples_evaluation))
         start = time()
-        # give seed here; we do not put anxy scaler for the timeseries data
+        # give seed here; we do not put any scaler for the timeseries data
         draw_from_prior = DrawFromPrior([lorenz], backend=backend, seed=seed)
         theta_vect, samples_matrix = draw_from_prior.sample_par_sim_pairs(n_samples_training, 1)
         samples_matrix = samples_matrix.reshape(samples_matrix.shape[0], samples_matrix.shape[-1])
@@ -343,19 +348,19 @@ elif model in ["Lorenz95", "fullLorenz95", ]:
     else:
         theta_vect = np.load(datasets_folder + "theta_vect.npy", allow_pickle=True)
         theta_vect_test = np.load(datasets_folder + "theta_vect_test.npy", allow_pickle=True)
-        if model == "Lorenz95":    
+        if model == "Lorenz95":
             print("Loading statistics")
             samples_matrix = np.load(datasets_folder + "statistics.npy", allow_pickle=True)
             samples_matrix_test = np.load(datasets_folder + "statistics_test.npy", allow_pickle=True)
             print(samples_matrix.shape)
-        else: 
+        else:
             print("Loading data")
             samples_matrix = np.load(datasets_folder + "samples_matrix.npy", allow_pickle=True)
             samples_matrix_test = np.load(datasets_folder + "samples_matrix_test.npy", allow_pickle=True)
             print(samples_matrix.shape)
         print("Loaded data; {} training samples, {} test samples".format(theta_vect.shape[0], theta_vect_test.shape[0]))
 
-    if model =="Lorenz95":
+    if model == "Lorenz95":
         if constraint_additional:
             lower_bound = np.array([None] * 23)
             lower_bound[1] = 0
@@ -366,8 +371,12 @@ elif model in ["Lorenz95", "fullLorenz95", ]:
         scaler_data_FP = MinMaxScaler().fit(samples_matrix)
         scale_samples_flag = True
     else:
-        lower_bound = np.array([None] * 4800)
-        upper_bound = np.array([None] * 4800)
+        if model == "fullLorenz95":
+            lower_bound = np.array([None] * 4800)
+            upper_bound = np.array([None] * 4800)
+        else:
+            lower_bound = np.array([None] * 360)
+            upper_bound = np.array([None] * 360)
         scaler_data_FP = DummyScaler()
         scale_samples_flag = False
     scale_parameters_flag = True
@@ -451,17 +460,27 @@ elif model == "Lorenz95":
     net_FP_architecture = createDefaultNN(23, 4, [70, 120, 120, 70, 20],
                                           nonlinearity=torch.nn.ReLU())  # I am using relu here
 
-elif model == "fullLorenz95":
+elif "fullLorenz95" in model:
     nonlinearity = torch.nn.Softplus
-    phi_net_data_SM_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
-    rho_net_data_SM_architecture = createDefaultNNWithDerivatives(60, 5, [80, 100, 80], nonlinearity=nonlinearity)
-    net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
-                                                       order=1, number_timeseries=40)
-
-    phi_net_FP_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
-    rho_net_FP_architecture = createDefaultNNWithDerivatives(60, 4, [80, 100, 80], nonlinearity=nonlinearity)
-    net_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
-                                                  order=1, number_timeseries=40)
+    if model == "fullLorenz95":
+        phi_net_data_SM_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120],
+                                                                      nonlinearity=nonlinearity)
+        rho_net_data_SM_architecture = createDefaultNNWithDerivatives(60, 5, [80, 100, 80], nonlinearity=nonlinearity)
+        net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                           order=1, number_timeseries=40)
+        phi_net_FP_architecture = createDefaultNNWithDerivatives(80, 20, [120, 160, 120], nonlinearity=nonlinearity)
+        rho_net_FP_architecture = createDefaultNNWithDerivatives(60, 4, [80, 100, 80], nonlinearity=nonlinearity)
+        net_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
+                                                      order=1, number_timeseries=40)
+    else:
+        phi_net_data_SM_architecture = createDefaultNNWithDerivatives(16, 20, [50, 100, 50], nonlinearity=nonlinearity)
+        rho_net_data_SM_architecture = createDefaultNNWithDerivatives(28, 5, [40, 90, 35], nonlinearity=nonlinearity)
+        net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                           order=1, number_timeseries=8)
+        phi_net_data_FP_architecture = createDefaultNNWithDerivatives(16, 20, [50, 100, 50], nonlinearity=nonlinearity)
+        rho_net_data_FP_architecture = createDefaultNNWithDerivatives(28, 4, [40, 90, 35], nonlinearity=nonlinearity)
+        net_FP_architecture = create_PEN_architecture(phi_net_data_FP_architecture, rho_net_data_FP_architecture,
+                                                      order=1, number_timeseries=8)
 
     net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
                                                 batch_norm_last_layer=batch_norm_last_layer,

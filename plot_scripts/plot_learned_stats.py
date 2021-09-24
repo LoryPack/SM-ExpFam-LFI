@@ -45,7 +45,7 @@ affine_batch_norm = args.affine_bn
 FP = args.FP
 seed = args.seed
 
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 print("{} model.".format(model))
@@ -55,7 +55,8 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
                        "Lorenz95": "results/Lorenz95/",
-                       "fullLorenz95": "results/fullLorenz95/"}
+                       "fullLorenz95": "results/fullLorenz95/",
+                       "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 
@@ -120,7 +121,7 @@ elif model == "AR2":
     arma_abc_model = ARMAmodel([ar1, ar2], num_AR_params=2, num_MA_params=0, size=arma_size)
     theta_vect, samples_matrix = generate_training_samples_ABC_model(arma_abc_model, n_observations, seed=seed)
 
-elif model in ["Lorenz95", "fullLorenz95", ]:
+if "Lorenz95" in model:
     theta1_min = 1.4
     theta1_max = 2.2
     theta2_min = 0
@@ -136,7 +137,8 @@ elif model in ["Lorenz95", "fullLorenz95", ]:
     sigma_e = Uniform([[sigma_e_min], [sigma_e_max]], name='sigma_e')
     phi = Uniform([[phi_min], [phi_max]], name='phi')
 
-    lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=4, n_timestep_per_time_unit=30, name='lorenz')
+    lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=1.5 if model == "fullLorenz95smaller" else 4,
+                           n_timestep_per_time_unit=30, K=8 if model == "fullLorenz95smaller" else 40, name='lorenz')
     theta_vect, samples_matrix = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
     if model == "Lorenz95":
         statistics = LorenzLargerStatistics(degree=1, cross=False)
@@ -182,18 +184,21 @@ elif model == "Lorenz95":
                                                batch_norm_last_layer=batch_norm_last_layer,
                                                affine_batch_norm=affine_batch_norm)
     net_data_FP_architecture = net_data_SM_architecture
-elif model == "fullLorenz95":
+
+elif "fullLorenz95" in model:
     nonlinearity = torch.nn.Softplus
     output_size = 5 if not FP else 4
-    phi_net_data_SM_architecture = createDefaultNN(80, 20, [120, 160, 120], nonlinearity=nonlinearity())
-    rho_net_data_SM_architecture = createDefaultNN(60, 5, [80, 100, 80], nonlinearity=nonlinearity())
-    net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
-                                                       order=1, number_timeseries=40)
-
-    phi_net_FP_architecture = createDefaultNN(80, 20, [120, 160, 120], nonlinearity=nonlinearity())
-    rho_net_FP_architecture = createDefaultNN(60, 4, [80, 100, 80], nonlinearity=nonlinearity())
-    net_data_FP_architecture = create_PEN_architecture(phi_net_FP_architecture, rho_net_FP_architecture,
-                                                  order=1, number_timeseries=40)
+    if model == "fullLorenz95":
+        phi_net_data_SM_architecture = createDefaultNN(80, 20, [120, 160, 120], nonlinearity=nonlinearity())
+        rho_net_data_SM_architecture = createDefaultNN(60, output_size, [80, 100, 80], nonlinearity=nonlinearity())
+        net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                           order=1, number_timeseries=40)
+    else:
+        phi_net_data_SM_architecture = createDefaultNN(16, 20, [50, 100, 50], nonlinearity=nonlinearity())
+        rho_net_data_SM_architecture = createDefaultNN(28, output_size, [40, 90, 35], nonlinearity=nonlinearity())
+        net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture,
+                                                           order=1, number_timeseries=8)
+    net_data_FP_architecture = net_data_SM_architecture
 
 if FP:
     scaler_data_FP = pickle.load(open(nets_folder + "scaler_data_FP.pkl", "rb"))

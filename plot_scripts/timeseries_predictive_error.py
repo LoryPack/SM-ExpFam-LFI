@@ -67,12 +67,13 @@ np.random.seed(seed)
 rng = np.random.RandomState(seed)
 
 # checks
-if model not in ("Lorenz95", "fullLorenz95"):
+if model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 print("{} model.".format(model))
 # set up the default root folder and other values
-default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/"}
+default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/",
+                       "fullLorenz95": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if compare_with not in ("Exc-SM", "Exc-SSM", "ABC-SM", "ABC-SSM"):
@@ -90,7 +91,7 @@ if sleep_time > 0:
     sleep(60 * sleep_time)
     print("Done waiting!")
 
-if model in ("Lorenz95", "fullLorenz95"):
+if "Lorenz95" in model:
     # these values are not used really:
     theta1 = 2
     theta2 = 0.5
@@ -98,7 +99,8 @@ if model in ("Lorenz95", "fullLorenz95"):
     phi = 0.4
 
     ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=time_units_future,
-                              n_timestep_per_time_unit=n_timestep_per_time_unit, name='lorenz')
+                              n_timestep_per_time_unit=n_timestep_per_time_unit, name='lorenz',
+                              K=8 if model == "fullLorenz95smaller" else 40)
     extract_posterior_mean_from_journal = extract_posterior_mean_from_journal_Lorenz95
     extract_params_and_weights_from_journal = extract_params_and_weights_from_journal_Lorenz95
 
@@ -128,7 +130,7 @@ if compute_errors:
         ABC_FP_namefile_postfix = f"_{obs_index + 1}" + ABC_FP_namefile_postfix_no_index
         ABC_SM_namefile_postfix = f"_{obs_index + 1}" + ABC_SM_namefile_postfix_no_index
         # namefile_postfix = "_{}".format(obs_index + 1) + namefile_postfix_no_index
-        if model == "fullLorenz95":
+        if "fullLorenz95" in model:
             x_obs = np.load(observation_folder + "x_obs{}.npy".format(obs_index + 1))
         else:
             x_obs = np.load(observation_folder + "timeseriers_obs{}.npy".format(obs_index + 1))
