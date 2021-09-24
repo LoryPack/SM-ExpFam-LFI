@@ -264,7 +264,7 @@ class StochLorenz95(ProbabilisticModel, Continuous):
         # Do the actual forward simulation
         vector_of_k_samples = self.Lorenz95(theta1, theta2, sigma_e, phi, k, rng=rng)
         # Format the output to obey API
-        result = [np.array([x]) for x in vector_of_k_samples]
+        result = [np.array(x) for x in vector_of_k_samples]
         return result
 
     def forward_simulate_true_model(self, k, n_timestep_per_time_unit=None, rng=np.random.RandomState()):
