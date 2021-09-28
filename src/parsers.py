@@ -85,7 +85,7 @@ def parser_approx_likelihood_approach(default_root_folder, default_nets_folder="
                         help='Proposal size for auxiliary MCMC chain inside ExchangeMCMC')
     parser.add_argument('--load_trace_if_available', action="store_true",
                         help='Whether to use previously stored simulations.')
-    parser.add_argument('--ABC_alg', type=str, default="PMCABC",
+    parser.add_argument('--ABC_alg', type=str, default="SABC",
                         help="ABC algorithm to use; can be PMCABC, APMCABC, SABC or RejectionABC")
     parser.add_argument('--ABC_steps', type=int, default=3, help="Number of steps for sequential ABC algorithms.")
     parser.add_argument('--ABC_full_output', action="store_true",

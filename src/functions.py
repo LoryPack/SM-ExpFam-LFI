@@ -708,3 +708,76 @@ def try_loading_wass_RMSE_post_mean(folder, filename_postfix, load_flag):
     else:
         load_successful = False
     return wass_dist, RMSE_post_mean, load_successful
+
+
+class DrawFromParamValues(InferenceMethod):
+    model = None
+    rng = None
+    n_samples = None
+    backend = None
+
+    n_samples_per_param = None  # this needs to be there otherwise it does not instantiate correctly
+
+    def __init__(self, root_models, backend, seed=None, discard_too_large_values=True):
+        self.model = root_models
+        self.backend = backend
+        self.rng = np.random.RandomState(seed)
+        self.discard_too_large_values = discard_too_large_values
+        # An object managing the bds objects
+        self.accepted_parameters_manager = AcceptedParametersManager(self.model)
+
+    def sample(self, param_values):
+
+        self.param_values = param_values  # list of parameter values
+        self.n_samples = len(param_values)
+        self.accepted_parameters_manager.broadcast(self.backend, 1)
+
+        # now generate an array of seeds that need to be different one from the other. One way to do it is the
+        # following.
+        # Moreover, you cannot use int64 as seeds need to be < 2**32 - 1. How to fix this?
+        # Note that this is not perfect; you still have small possibility of having some seeds that are equal. Is there
+        # a better way? This would likely not change much the performance
+        # An idea would be to use rng.choice but that is too
+        seed_arr = self.rng.randint(0, np.iinfo(np.uint32).max, size=self.n_samples, dtype=np.uint32)
+        # check how many equal seeds there are and remove them:
+        sorted_seed_arr = np.sort(seed_arr)
+        indices = sorted_seed_arr[:-1] == sorted_seed_arr[1:]
+        # print("Number of equal seeds:", np.sum(indices))
+        if np.sum(indices) > 0:
+            # the following can be used to remove the equal seeds in case there are some
+            sorted_seed_arr[:-1][indices] = sorted_seed_arr[:-1][indices] + 1
+        # print("Number of equal seeds after update:", np.sum(sorted_seed_arr[:-1] == sorted_seed_arr[1:]))
+        rng_arr = np.array([np.random.RandomState(seed) for seed in sorted_seed_arr])
+        # zip with the param values:
+        data_arr = list(zip(self.param_values, rng_arr))
+        data_pds = self.backend.parallelize(data_arr)
+
+        parameters_simulations_pds = self.backend.map(self._sample_parameter, data_pds)
+        parameters_simulations = self.backend.collect(parameters_simulations_pds)
+        parameters, simulations = [list(t) for t in zip(*parameters_simulations)]
+
+        parameters = np.array(parameters).squeeze()
+        simulations = np.array(simulations).squeeze()
+
+        return parameters, simulations
+
+    def _sample_parameter(self, data, npc=None):
+        theta, rng = data[0], data[1]
+
+        ok_flag = False
+
+        while not ok_flag:
+            # assume that we have one single model
+            y_sim = self.model[0].forward_simulate(theta, 1, rng=rng)
+            # self.sample_from_prior(rng=rng)
+            # theta = self.get_parameters(self.model)
+            # y_sim = self.simulate(1, rng=rng, npc=npc)
+
+            # if there are no potential infinities there (or if we do not check for those).
+            # For instance, Lorenz model may give too large values sometimes (quite rarely).
+            if np.sum(np.isinf(np.array(y_sim).astype("float32"))) > 0 and self.discard_too_large_values:
+                print("y_sim contained too large values for float32; simulating again.")
+            else:
+                ok_flag = True
+
+        return theta, y_sim

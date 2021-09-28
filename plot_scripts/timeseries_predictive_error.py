@@ -73,7 +73,7 @@ if model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
 print("{} model.".format(model))
 # set up the default root folder and other values
 default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/",
-                       "fullLorenz95": "results/fullLorenz95smaller/"}
+                       "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 if compare_with not in ("Exc-SM", "Exc-SSM", "ABC-SM", "ABC-SSM"):
@@ -147,19 +147,13 @@ if compute_errors:
                 (n_post_samples_exchange, 40, time_units_future * n_timestep_per_time_unit))
         else:
             jrnl_ABC_SM = Journal.fromFile(ABC_SM_folder + "jrnl" + ABC_SM_namefile_postfix + ".jnl")
-            # subsample journal according to weights (bootstrap):
             params_ABC_SM, weights_ABC_SM = extract_params_and_weights_from_journal(jrnl_ABC_SM)
-            # params_ABC_SM_subsampled = subsample_params_according_to_weights(params_ABC_SM, weights_ABC_SM,
-            #                                                                  size=n_post_samples)
             predictive_error_ABC_SM = np.zeros((len(params_ABC_SM), time_units_future * n_timestep_per_time_unit))  # 1)
             future_evolution_ABC_SM_array = np.zeros(  # for 2)
                 (len(params_ABC_SM), 40, time_units_future * n_timestep_per_time_unit))
 
         jrnl_ABC_FP = Journal.fromFile(ABC_FP_folder + "jrnl" + ABC_FP_namefile_postfix + ".jnl")
-        # subsample journal according to weights (bootstrap):
         params_ABC_FP, weights_ABC_FP = extract_params_and_weights_from_journal(jrnl_ABC_FP)
-        # params_ABC_FP_subsampled = subsample_params_according_to_weights(params_ABC_FP, weights_ABC_FP,
-        #                                                                  size=n_post_samples)
         predictive_error_ABC_FP = np.zeros((len(params_ABC_FP), time_units_future * n_timestep_per_time_unit))  # 1)
         future_evolution_ABC_FP_array = np.zeros(  # for 2)
             (len(params_ABC_FP), 40, time_units_future * n_timestep_per_time_unit))
