@@ -1,7 +1,6 @@
 import numpy as np
-from abc import ABCMeta, abstractmethod
 
-from abcpy.approx_lhd import Approx_likelihood
+from abcpy.inferences import DrawFromPrior
 
 
 class EnergyScore:
@@ -193,3 +192,32 @@ def estimate_kernel_score_timeseries(simulations_timeseries, observation_timeser
 
 def estimate_energy_score_timeseries(simulations_timeseries, observation_timeseries, **kwargs):
     return _estimate_score_timeseries(simulations_timeseries, observation_timeseries, score="energy", **kwargs)
+
+
+def estimate_bandwidth_timeseries(model_abc, backend, num_vars, n_theta=100, seed=42, return_values=["median"]):
+    """Estimate the bandwidth for the gaussian kernel in KernelSR. Specifically, it generates n_samples_per_param
+    simulations for each theta, then computes the pairwise distances and takes the median of it. The returned value
+    is the median (by default; you can also compute the mean if preferred) of the latter over all considered values
+    of theta.  """
+
+    # generate the values of theta from prior
+    theta_vect, simulations_theta_vect = DrawFromPrior([model_abc], backend, seed=seed).sample_par_sim_pairs(n_theta, 1)
+    simulations_theta_vect = simulations_theta_vect.reshape(n_theta, num_vars, -1)  # last index is the timestep
+    n_timestep = simulations_theta_vect.shape[2]
+
+    distances_median = np.zeros(n_timestep)
+    for timestep_index in range(n_timestep):
+        simulations = simulations_theta_vect[:, :, timestep_index]
+        distances = np.linalg.norm(
+            simulations.reshape(1, n_theta, -1) - simulations.reshape(n_theta, 1, -1), axis=-1)[
+            ~np.eye(n_theta, dtype=bool)].reshape(-1)
+        # take the median over the second index:
+        distances_median[timestep_index] = np.median(distances)
+
+    return_list = []
+    if "median" in return_values:
+        return_list.append(np.median(distances_median.flatten()))
+    if "mean" in return_values:
+        return_list.append(np.mean(distances_median.flatten()))
+
+    return return_list[0] if len(return_list) == 1 else return_list

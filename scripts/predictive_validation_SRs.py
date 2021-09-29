@@ -4,14 +4,14 @@ import sys
 from time import sleep
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 sys.path.append(os.getcwd())
 
-from src.functions import plot_confidence_bands_performance_vs_iteration, subsample_trace, DrawFromParamValues
+from src.functions import subsample_trace, DrawFromParamValues
 from src.utils_Lorenz95_example import extract_posterior_mean_from_journal_Lorenz95, \
     extract_params_and_weights_from_journal_Lorenz95
-from src.scoring_rules import estimate_kernel_score_timeseries, estimate_energy_score_timeseries
+from src.scoring_rules import estimate_kernel_score_timeseries, estimate_energy_score_timeseries, \
+    estimate_bandwidth_timeseries
 
 from abcpy.output import Journal
 from abcpy.backends import BackendMPI, BackendDummy
@@ -42,6 +42,9 @@ parser.add_argument('--ABC_steps', type=int, default=3, help="Number of steps fo
 parser.add_argument('--seed', type=int, default=42)
 parser.add_argument('--load_results_if_available', action="store_true")
 parser.add_argument('--use_MPI', '-m', action="store_true", help='Use MPI to generate simulations')
+parser.add_argument('--gamma_kernel_score', type=float, default=None,
+                    help='The value of bandwidth used in the kernel SR. If not provided, it is determined by running '
+                         'simulations from the prior.')
 
 args = parser.parse_args()
 
@@ -61,6 +64,7 @@ ABC_steps = args.ABC_steps
 seed = args.seed
 load_results_if_available = args.load_results_if_available
 use_MPI = args.use_MPI
+gamma_kernel_score = args.gamma_kernel_score
 
 np.random.seed(seed)
 
@@ -123,9 +127,16 @@ if load_results_if_available:
         pass
 
 if compute_srs:  # compute_srs:
+    backend = BackendMPI() if use_MPI else BackendDummy()
+    if gamma_kernel_score is None:
+        print("Set gamma from simulations from the model")
+        gamma_kernel_score = estimate_bandwidth_timeseries(ABC_model, backend=backend, n_theta=1000, seed=seed + 1,
+                                                           num_vars=num_vars_in_Lorenz)
+        print("Estimated gamma ", gamma_kernel_score)
+
     print("Computing scoring rules values by generating predictive distribution.")
 
-    draw_from_params = DrawFromParamValues([ABC_model], backend=BackendMPI() if use_MPI else BackendDummy(), seed=seed)
+    draw_from_params = DrawFromParamValues([ABC_model], backend=backend, seed=seed)
 
     energy_sr_values_cumulative = np.empty(n_observations - start_observation_index)
     energy_sr_values_timestep = np.empty((n_observations - start_observation_index, int(time_units * 30)))
@@ -176,7 +187,7 @@ if compute_srs:  # compute_srs:
         energy_sr_values_timestep[obs_index - start_observation_index] = energy_scores[0]
         energy_sr_values_cumulative[obs_index - start_observation_index] = energy_scores[1]
 
-        kernel_scores = estimate_kernel_score_timeseries(posterior_simulations, x_obs)
+        kernel_scores = estimate_kernel_score_timeseries(posterior_simulations, x_obs, sigma=gamma_kernel_score)
         kernel_sr_values_timestep[obs_index - start_observation_index] = kernel_scores[0]
         kernel_sr_values_cumulative[obs_index - start_observation_index] = kernel_scores[1]
 
