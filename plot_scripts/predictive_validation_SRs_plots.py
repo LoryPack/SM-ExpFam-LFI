@@ -74,7 +74,7 @@ default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results
 if results_folder is None:
     results_folder = default_root_folder[model]
 
-model_text = {"Lorenz95": "Lorenz95", "fullLorenz95": "fullLorenz95", "fullLorenz95smaller": "fullLorenz95smaller", }
+model_text = {"Lorenz95": "Lorenz95", "fullLorenz95": "Large", "fullLorenz95smaller": "Small"}
 
 # now load all SR values; we load only SR results where the folder for the corresponding technique has beeen provided
 
@@ -112,7 +112,7 @@ list_indeces = (np.arange(len(techniques)) + 1).tolist()
 fig, ax1 = plt.subplots(1, figsize=(0.8 * len(list_indeces) + 1, 6))
 ax2 = ax1.twinx()
 ax1.set_title(f"{model_text[model]}")
-c = "blue"
+c = "C1"
 ax1.boxplot(energy_cumulative_list, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
             boxprops=dict(facecolor=c, color=c, alpha=0.5),
             capprops=dict(color=c), whiskerprops=dict(color=c), flierprops=dict(color=c, markeredgecolor=c),
@@ -122,7 +122,7 @@ ax1.tick_params(axis='y', labelcolor=c)
 ax1.set_xticklabels(techniques, rotation=45)
 ax1.set_ylabel("Energy Score", color=c)
 # ax1.set_ylim(ymin=0)
-c = "red"
+c = "C2"
 ax2.boxplot(kernel_cumulative_list, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
             boxprops=dict(facecolor=c, color=c, alpha=0.5),
             capprops=dict(color=c), whiskerprops=dict(color=c), flierprops=dict(color=c, markeredgecolor=c),
