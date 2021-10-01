@@ -103,6 +103,9 @@ true_posterior_available = model not in ("Lorenz95", "fullLorenz95", "fullLorenz
 if inference_technique not in ("exchange", "ABC"):
     raise NotImplementedError
 
+if technique == "FP" and inference_technique == "exchange":
+    raise RuntimeError
+
 print("{} model with {}.".format(model, technique))
 # set up the default root folder and other values
 default_root_folder = {"gaussian": "results/gaussian/",
@@ -304,7 +307,8 @@ if "Lorenz95" in model:
         ABC_model = StochLorenz95_with_statistics([theta1, theta2, sigma_e, phi], time_units=4,
                                                   n_timestep_per_time_unit=30, name='lorenz')
     else:
-        ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=1.5 if model == "fullLorenz95smaller" else 4,
+        ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi],
+                                  time_units=1.5 if model == "fullLorenz95smaller" else 4,
                                   n_timestep_per_time_unit=30, name='lorenz',
                                   K=8 if model == "fullLorenz95smaller" else 40)
 
@@ -637,8 +641,9 @@ for obs_index in range(start_observation_index, n_observations):
             weights_trace_approx=weights if inference_technique == "ABC" else None,
             thetarange=np.array([lower_bounds, upper_bounds]),
             color="#40739E", figsize_vertical=5, title_size=16, label_size=16, param1_name=param_names[0],
-            param2_name=param_names[1], vertical=True, space_subplots=0.23)
-        bbox_inches = Bbox(np.array([[0, .4], [5, 9.2]]))
+            param2_name=param_names[1], vertical=True, space_subplots=0.23, thresh=0.15)
+        ax[0].set_title(f"{'ABC' if inference_technique == 'ABC' else 'Exc'}-{technique} posterior", size=16)
+        bbox_inches = Bbox(np.array([[0, .4], [5, 5]]))
         plt.savefig(inference_folder + "bivariate_marginals" + namefile_postfix + ".png", bbox_inches=bbox_inches)
         plt.close()
     if plot_journal and inference_technique == "ABC":

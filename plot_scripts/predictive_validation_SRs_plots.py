@@ -74,7 +74,7 @@ default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results
 if results_folder is None:
     results_folder = default_root_folder[model]
 
-model_text = {"Lorenz95": "Lorenz95", "fullLorenz95": "Large", "fullLorenz95smaller": "Small"}
+model_text = {"Lorenz95": "Lorenz95", "fullLorenz95": "Large Lorenz96", "fullLorenz95smaller": "Small Lorenz96"}
 
 # now load all SR values; we load only SR results where the folder for the corresponding technique has beeen provided
 
@@ -107,11 +107,14 @@ for n_tech, tech in enumerate(all_techniques):
         kernel_cumulative_list.append(np.load(folder + "kernel_sr_values_cumulative" + namefile_postfix + ".npy"))
 
 list_indeces = (np.arange(len(techniques)) + 1).tolist()
+labelsize = 24
+ticksize_x = 16
+ticksize_y = 12
 
 # plot 1: boxplots for cumulative SR values:
 fig, ax1 = plt.subplots(1, figsize=(0.8 * len(list_indeces) + 1, 6))
 ax2 = ax1.twinx()
-ax1.set_title(f"{model_text[model]}")
+ax1.set_title(f"{model_text[model]}", size=labelsize)
 c = "C1"
 ax1.boxplot(energy_cumulative_list, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
             boxprops=dict(facecolor=c, color=c, alpha=0.5),
@@ -120,19 +123,23 @@ ax1.boxplot(energy_cumulative_list, whis=(50 - CI_level / 2, 50 + CI_level / 2),
 ax1.set_xticks(list_indeces)
 ax1.tick_params(axis='y', labelcolor=c)
 ax1.set_xticklabels(techniques, rotation=45)
-ax1.set_ylabel("Energy Score", color=c)
+ax1.set_ylabel("Energy Score", color=c, size=labelsize)
 # ax1.set_ylim(ymin=0)
 c = "C2"
 ax2.boxplot(kernel_cumulative_list, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
             boxprops=dict(facecolor=c, color=c, alpha=0.5),
             capprops=dict(color=c), whiskerprops=dict(color=c), flierprops=dict(color=c, markeredgecolor=c),
             medianprops=dict(color=c), widths=0.3, positions=np.array(list_indeces) + 0.15)
-ax2.set_ylabel("Kernel Score", color=c)
+ax2.set_ylabel("Kernel Score", color=c, size=labelsize)
 ax2.tick_params(axis='y', labelcolor=c)
 ax2.set_xticks(list_indeces)
 ax2.set_xticklabels(techniques, rotation=45)
 # ax2.set_ylim(ymin=0)
-bbox_inches = Bbox(np.array([[-0.4, 0], [0.8 * len(list_indeces) + 1.3, 5.6]]))
+ax1.tick_params(axis='y', which='both', labelsize=ticksize_y, )
+ax2.tick_params(axis='y', which='both', labelsize=ticksize_y, )
+ax1.tick_params(axis='x', which='both', labelsize=ticksize_x, )
+ax2.tick_params(axis='x', which='both', labelsize=ticksize_x, )
+bbox_inches = Bbox(np.array([[-1, -0.5], [0.8 * len(list_indeces) + 2, 5.7]]))
 plt.savefig(results_folder + "SR_cumulative_boxplot.pdf", bbox_inches=bbox_inches)
 plt.close()
 

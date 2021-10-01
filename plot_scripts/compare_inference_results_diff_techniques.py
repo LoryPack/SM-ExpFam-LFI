@@ -124,6 +124,10 @@ load_exchange_SSM_if_available = args.load_exchange_SSM_if_available
 load_all_if_available = args.load_all_if_available
 CI_level = args.CI_level
 
+labelsize = 27
+ticksize_x = 19
+ticksize_y = 14
+
 np.random.seed(seed)  # seed rng
 default_root_folder = {"gaussian": "results/gaussian/",
                        "gamma": "results/gamma/",
@@ -357,7 +361,7 @@ if plot == "final":
     # joint plot:
     fig, ax1 = plt.subplots(1, figsize=(0.8 * len(list_names) + 1, 6))
     ax2 = ax1.twinx()
-    ax1.set_title(f"{model_text[model]}")
+    ax1.set_title(f"{model_text[model]}", size=labelsize)
     c = "blue"
     ax1.boxplot(list_wass_dist, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
                 boxprops=dict(facecolor=c, color=c, alpha=0.5),
@@ -368,7 +372,7 @@ if plot == "final":
     ax1.set_xticks(list_indeces)
     ax1.tick_params(axis='y', labelcolor=c)
     ax1.set_xticklabels(list_names_short, rotation=45)
-    ax1.set_ylabel("Wasserstein distance", color=c)
+    ax1.set_ylabel("Wasserstein distance", color=c, size=labelsize)
     ax1.set_ylim(ymin=0)
     c = "red"
     ax2.boxplot(list_RMSE_post_mean, whis=(50 - CI_level / 2, 50 + CI_level / 2), patch_artist=True, notch=True,
@@ -377,12 +381,16 @@ if plot == "final":
                 whiskerprops=dict(color=c),
                 flierprops=dict(color=c, markeredgecolor=c),
                 medianprops=dict(color=c), widths=0.3, positions=np.array(list_indeces) + 0.15)
-    ax2.set_ylabel("RMSE posterior mean", color=c)
+    ax2.set_ylabel("RMSE posterior mean", color=c, size=labelsize)
     ax2.tick_params(axis='y', labelcolor=c)
     ax2.set_xticks(list_indeces)
-    ax2.set_xticklabels(list_names_short, rotation=45)
+    ax2.set_xticklabels(list_names_short, rotation=45, size=labelsize)
     ax2.set_ylim(ymin=0)
-    bbox_inches = Bbox(np.array([[-0.1, -0.15], [0.8 * len(list_names) + 1.2, 5.6]]))
+    ax1.tick_params(axis='y', which='both', labelsize=ticksize_y, )
+    ax2.tick_params(axis='y', which='both', labelsize=ticksize_y, )
+    ax1.tick_params(axis='x', which='both', labelsize=ticksize_x, )
+    ax2.tick_params(axis='x', which='both', labelsize=ticksize_x, )
+    bbox_inches = Bbox(np.array([[-0, -0.4], [0.8 * len(list_names) + 1.1, 5.8]]))
     plt.savefig(results_folder + "joint_boxplot.pdf", bbox_inches=bbox_inches)
     plt.close()
 else:
@@ -435,7 +443,7 @@ else:
                                                            size=subsample_size)  # used to compute wass dist
                 # compute wass distance and RMSE
                 wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
-                                                             numItermax=10 ** 6)
+                                                              numItermax=10 ** 6)
                 RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
 
                 np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
@@ -515,11 +523,12 @@ else:
                                                        color_line="blue", band_1=CI_level, alpha_1=0.3,
                                                        band_2=0,
                                                        band_3=0, hatch='.')
-        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * max(SL_steps, RE_steps)),
-                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
-                                                       color_line="blue", band_1=CI_level, alpha_1=0.3,
-                                                       band_2=0,
-                                                       band_3=0, hatch='.')
+        # plot_confidence_bands_performance_vs_iteration(
+        #     np.stack([RMSE_post_mean_exchange_SSM] * max(SL_steps, RE_steps)),
+        #     fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+        #     color_line="blue", band_1=CI_level, alpha_1=0.3,
+        #     band_2=0,
+        #     band_3=0, hatch='.')
         ax.set_title("RMSE posterior mean")
         ax.set_xlabel("Iteration")
         ax.legend()
@@ -568,7 +577,7 @@ else:
                                                            size=subsample_size)  # used to compute wass dist
                 # compute wass distance and RMSE
                 wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
-                                                             numItermax=10 ** 6)
+                                                              numItermax=10 ** 6)
                 RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
 
                 np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
@@ -602,10 +611,10 @@ else:
                                                        ax=ax, label="Exc-SM", color_band_1="blue", color_line="blue",
                                                        band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
                                                        fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
-                                                       ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
-                                                       band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
-                                                       fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
+        #                                                ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
+        #                                                band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
+        #                                                fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("Wasserstein distance")
         # ax.set_xlabel("Iteration")
@@ -629,10 +638,10 @@ else:
                                                        fig=fig, ax=ax, label="Exc-SM", color_band_1="blue",
                                                        color_line="blue", band_1=CI_level, alpha_1=1,
                                                        alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * SL_steps),
-                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
-                                                       color_line="blue", band_1=CI_level, alpha_1=1,
-                                                       alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * SL_steps),
+        #                                                fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+        #                                                color_line="blue", band_1=CI_level, alpha_1=1,
+        #                                                alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel(r"RMSE posterior mean")
         # ax.set_xlabel("Iteration")
@@ -694,7 +703,7 @@ else:
                                                            size=subsample_size)  # used to compute wass dist
                 # compute wass distance and RMSE
                 wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
-                                                             numItermax=10 ** 6)
+                                                              numItermax=10 ** 6)
                 RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
 
                 np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
@@ -728,10 +737,10 @@ else:
                                                        ax=ax, label="Exc-SM", color_band_1="blue", color_line="blue",
                                                        band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
                                                        fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
-                                                       ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
-                                                       band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
-                                                       fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(np.stack([wass_dist_exchange_SSM] * SL_steps), fig=fig,
+        #                                                ax=ax, label="Exc-SSM", color_band_1="blue", color_line="blue",
+        #                                                band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0,
+        #                                                fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("Wasserstein distance")
         # ax.set_xlabel("Iteration")
@@ -754,10 +763,10 @@ else:
                                                        fig=fig, ax=ax, label="Exc-SM", color_band_1="blue",
                                                        color_line="blue", band_1=CI_level, alpha_1=1,
                                                        alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * RE_steps),
-                                                       fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
-                                                       color_line="blue", band_1=CI_level, alpha_1=1,
-                                                       alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(np.stack([RMSE_post_mean_exchange_SSM] * RE_steps),
+        #                                                fig=fig, ax=ax, label="Exc-SSM", color_band_1="blue",
+        #                                                color_line="blue", band_1=CI_level, alpha_1=1,
+        #                                                alpha_2=0, alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("RMSE posterior mean")
         # ax.set_xlabel("Iteration")
@@ -771,9 +780,9 @@ else:
         plt.close()
 
         iteration = check_iteration_better_perf(wass_dist_RE, wass_dist_exchange_SM)
-        print("RE performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        print("RE performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
         iteration = check_iteration_better_perf(wass_dist_RE, wass_dist_exchange_SSM)
-        print("RE performs better than my method at iteration: ", None if iteration is None else iteration + 1)
+        print("RE performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)
 
     elif plot in ("ABC",):
         # first try loading the Wass distances:
@@ -827,7 +836,7 @@ else:
                                                            size=subsample_size)  # used to compute wass dist
                 # compute wass distance and RMSE
                 wass_dist_exchange_SSM[obs_index] = wass_dist(trace_exchange_subsample, trace_true_subsample,
-                                                             numItermax=10 ** 6)
+                                                              numItermax=10 ** 6)
                 RMSE_post_mean_exchange_SSM[obs_index] = np.linalg.norm(means_exchange - true_post_means)
 
                 np.save(inference_folder_exchange_SSM + "wass_dist", wass_dist_exchange_SSM)
@@ -877,11 +886,11 @@ else:
                             RMSE_post_mean_ABC_SM)
                     if not load_successful_ABC_SSM:
                         params_ABC_SSM, weights_ABC_SSM = extract_params_and_weights_from_journal(jrnl_ABC_SSM,
-                                                                                                step=iteration)
+                                                                                                  step=iteration)
                         means_ABC_SSM = extract_posterior_mean_from_journal(jrnl_ABC_SSM, step=iteration)
                         wass_dist_ABC_SSM[iteration, obs_index] = wass_dist(params_ABC_SSM,
-                                                                           trace_true_subsample, numItermax=10 ** 6,
-                                                                           weights_post_1=weights_ABC_SSM)
+                                                                            trace_true_subsample, numItermax=10 ** 6,
+                                                                            weights_post_1=weights_ABC_SSM)
                         RMSE_post_mean_ABC_SSM[iteration, obs_index] = np.linalg.norm(means_ABC_SSM - true_post_means)
                         np.save(inference_folder_ABC_SSM + "wass_dist_iterations" + ABC_SSM_namefile_postfix_no_index,
                                 wass_dist_ABC_SSM)
@@ -900,8 +909,8 @@ else:
                                                        color_line="C2", band_1=CI_level, alpha_1=0.3, alpha_2=0,
                                                        alpha_3=0, fill_between=True)
         plot_confidence_bands_performance_vs_iteration(wass_dist_ABC_SSM, fig=fig, ax=ax, label="ABC-SSM",
-                                                       color_band_1="C2",
-                                                       color_line="C2", band_1=CI_level, alpha_1=0.3, alpha_2=0,
+                                                       color_band_1="C3",
+                                                       color_line="C3", band_1=CI_level, alpha_1=0.3, alpha_2=0,
                                                        alpha_3=0, fill_between=True)
         plot_confidence_bands_performance_vs_iteration(
             np.stack([wass_dist_exchange_SM] * max(ABC_FP_steps, ABC_SM_steps)),
@@ -909,12 +918,12 @@ else:
             label="Exc-SM", color_band_1="blue", color_line="blue",
             band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0, hatch='.',
             fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(
-            np.stack([wass_dist_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)),
-            fig=fig, ax=ax,
-            label="Exc-SSM", color_band_1="blue", color_line="blue",
-            band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0, hatch='.',
-            fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(
+        #     np.stack([wass_dist_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)),
+        #     fig=fig, ax=ax,
+        #     label="Exc-SSM", color_band_1="blue", color_line="blue",
+        #     band_1=CI_level, alpha_1=1, alpha_2=0, alpha_3=0, hatch='.',
+        #     fill_between=False, ls="--", ls_band_1=":")
         # ax.set_title("Wasserstein distance")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("Wasserstein distance")
@@ -935,17 +944,17 @@ else:
                                                        color_band_1="C2", color_line="C2", band_1=CI_level, alpha_1=0.3,
                                                        alpha_2=0, alpha_3=0, fill_between=True)
         plot_confidence_bands_performance_vs_iteration(RMSE_post_mean_ABC_SSM, fig=fig, ax=ax, label="ABC-SSM",
-                                                       color_band_1="C2", color_line="C2", band_1=CI_level, alpha_1=0.3,
+                                                       color_band_1="C3", color_line="C3", band_1=CI_level, alpha_1=0.3,
                                                        alpha_2=0, alpha_3=0, fill_between=True)
         # stack the following in order to have an horizontal plot:
         plot_confidence_bands_performance_vs_iteration(
             np.stack([RMSE_post_mean_exchange_SM] * max(ABC_FP_steps, ABC_SM_steps)), fig=fig, ax=ax,
             label="Exc-SM", color_band_1="blue", color_line="blue", band_1=CI_level, alpha_1=1, alpha_2=0,
             alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
-        plot_confidence_bands_performance_vs_iteration(
-            np.stack([RMSE_post_mean_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)), fig=fig, ax=ax,
-            label="Exc-SSM", color_band_1="blue", color_line="blue", band_1=CI_level, alpha_1=1, alpha_2=0,
-            alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
+        # plot_confidence_bands_performance_vs_iteration(
+        #     np.stack([RMSE_post_mean_exchange_SSM] * max(ABC_FP_steps, ABC_SSM_steps)), fig=fig, ax=ax,
+        #     label="Exc-SSM", color_band_1="blue", color_line="blue", band_1=CI_level, alpha_1=1, alpha_2=0,
+        #     alpha_3=0, fill_between=False, ls="--", ls_band_1=":")
         ax.set_title(f"{model_text[model]}")
         ax.set_ylabel("RMSE posterior mean")
         # ax.set_xlabel("Number of simulations")
@@ -964,5 +973,9 @@ else:
         print("ABC-FP performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)
         iteration = check_iteration_better_perf(wass_dist_ABC_SM, wass_dist_exchange_SM)
         print("ABC-SM performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_ABC_SM, wass_dist_exchange_SSM)
+        print("ABC-SM performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)
+        iteration = check_iteration_better_perf(wass_dist_ABC_SSM, wass_dist_exchange_SM)
+        print("ABC-SSM performs better than Exc-SM at iteration: ", None if iteration is None else iteration + 1)
         iteration = check_iteration_better_perf(wass_dist_ABC_SSM, wass_dist_exchange_SSM)
         print("ABC-SSM performs better than Exc-SSM at iteration: ", None if iteration is None else iteration + 1)

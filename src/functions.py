@@ -477,7 +477,7 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
                                                param1_name=r"$\mu$",
                                                param2_name=r"$\sigma$", namefile=None, color="C0", figsize_vertical=9,
                                                legend=True, title_size=None, label_size=None, space_subplots=None,
-                                               vertical=False, thresh=0.05):
+                                               vertical=False, thresh=0.05, linewidth=1):
     # produce single marginal plot
     number_techniques_to_plot = 1 + (0 if trace_true is None else 1) + (0 if trace_approx_2 is None else 1)
     if vertical:
@@ -497,16 +497,16 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
         true_post_means = np.mean(trace_true, axis=0)
         sns.kdeplot(x=trace_true[:, 0], y=trace_true[:, 1], color=color, shade=True, thresh=thresh, alpha=1,
                     ax=ax[ax_index])
-        ax[ax_index].axvline(true_post_means[0], color=color, ls=":", label="Posterior mean")
-        ax[ax_index].axhline(true_post_means[1], color=color, ls=":")
+        ax[ax_index].axvline(true_post_means[0], color=color, ls=":", label="Posterior mean", lw=linewidth)
+        ax[ax_index].axhline(true_post_means[1], color=color, ls=":", lw=linewidth)
         ax[ax_index].set_title("True posterior", size=title_size)
         ax_index += 1
 
     approx_post_means = np.mean(trace_approx, axis=0)
     sns.kdeplot(x=trace_approx[:, 0], y=trace_approx[:, 1], color=color, shade=True, thresh=thresh, alpha=1,
                 ax=ax[ax_index], weights=weights_trace_approx, )
-    ax[ax_index].axvline(approx_post_means[0], color=color, ls=":", label="Posterior mean")
-    ax[ax_index].axhline(approx_post_means[1], color=color, ls=":")
+    ax[ax_index].axvline(approx_post_means[0], color=color, ls=":", label="Posterior mean", lw=linewidth)
+    ax[ax_index].axhline(approx_post_means[1], color=color, ls=":", lw=linewidth)
     ax[ax_index].set_title("Approximate posterior", size=title_size)
     ax_index += 1
 
@@ -514,8 +514,8 @@ def plot_bivariate_marginal_with_trace_samples(theta_obs, trace_approx, trace_tr
         approx_post_means_2 = np.mean(trace_approx_2, axis=0)
         sns.kdeplot(x=trace_approx_2[:, 0], y=trace_approx_2[:, 1], color=color, shade=True, thresh=thresh, alpha=1,
                     ax=ax[ax_index], weights=weights_trace_approx_2, )
-        ax[ax_index].axvline(approx_post_means_2[0], color=color, ls=":", label="Posterior mean")
-        ax[ax_index].axhline(approx_post_means_2[1], color=color, ls=":")
+        ax[ax_index].axvline(approx_post_means_2[0], color=color, ls=":", label="Posterior mean", lw=linewidth)
+        ax[ax_index].axhline(approx_post_means_2[1], color=color, ls=":", lw=linewidth)
         ax[ax_index].set_title("Approx posterior 2", size=title_size)
         ax_index += 1
 
@@ -676,14 +676,13 @@ def plot_confidence_bands_performance_vs_iteration(data, start_step=0, end_step=
 
 
 def check_iteration_better_perf(iterative_method_wass_dist, reference_wass_dist):
-    # iterative_method_wass_dist has shape n_steps x n_observations
     iterative_method_wass_dist_median = np.median(iterative_method_wass_dist, axis=1)
     reference_wass_dist_median = np.median(reference_wass_dist)
     boolean_array = iterative_method_wass_dist_median < reference_wass_dist_median
     if np.logical_not(boolean_array).all():  # all of them are False:
         val = None
     else:
-        val = np.argmax(iterative_method_wass_dist_median < reference_wass_dist_median)
+        val = np.argmax(boolean_array)
 
     return val
 

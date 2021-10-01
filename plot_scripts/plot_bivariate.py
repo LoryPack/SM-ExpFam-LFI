@@ -74,10 +74,6 @@ if sleep_time > 0:
     sleep(60 * sleep_time)
     print("Done waiting!")
 
-plot_boxplots = False  # maybe add this back! In a postprocessing script!
-save_exchange_MCMC_trace = True
-save_jrnl = True
-
 namefile_postfix_no_index = "_{}_n_samples_{}".format("exchange", n_samples)
 
 if model == "gaussian":
