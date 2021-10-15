@@ -10,12 +10,8 @@
 mkdir results
 mkdir results/fullLorenz95
 mkdir results/fullLorenz95/ABC-FP
-mkdir results/fullLorenz95/ABC-SM
 mkdir results/fullLorenz95/ABC-SSM
-mkdir results/fullLorenz95/Exc-SM
-mkdir results/fullLorenz95/Exc-SSM
 mkdir results/fullLorenz95/net-FP
-mkdir results/fullLorenz95/net-SM
 mkdir results/fullLorenz95/net-SSM
 mkdir results/fullLorenz95/observations
 
@@ -35,34 +31,12 @@ python3 plot_scripts/plot_learned_nat_params.py fullLorenz95 --nets_folder net-S
 
 python3 plot_scripts/plot_learned_stats.py fullLorenz95 --nets_folder net-FP --no_bn --n_obs 100 --FP
 
-# INFERENCES WITH Exc-SM
-
-model=fullLorenz95
-prop_size=0.1
-K=200  # bridging steps
-inner_steps=400
-inf_f=Exc-SM
-burnin=10000
-n_samples=50000
-net_f=net-SM
-tune_window=100 #000000
-
-python3 scripts/inferences.py SM ${model} --burnin $burnin --n_samples $n_samples \
-    --inference_folder $inf_f --nets_f $net_f \
-    --start 0 --n_obs $n_observations \
-    --aux_MCMC_inner_steps_exchange_MCMC $inner_steps --bridging ${K} \
-    --aux_MCMC_proposal_size_exchange_MCMC ${prop_size} \
-    --tuning ${tune_window} \
-    --deb warn \
-    --propose_new_theta_exchange_MCMC transformation
-
-
-# INFERENCES WITH ABC-SM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS
+# INFERENCES WITH ABC-SSM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS
 NTASKS=8  # adapt this to your setup
 start_obs=0
 ABC_algorithm=SABC
-ABC_steps=100 #0
-n_samples=1000 #0
+ABC_steps=100
+n_samples=1000
 ABC_eps=100000000
 n_observations=100
 SABC_cutoff=0  # increase this for faster stop.
@@ -108,9 +82,14 @@ mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
          --load_trace_if_available \
          --seed 42 
 
-# PRODUCE PLOTS
-python3 plot_scripts/timeseries_predictive_error.py fullLorenz95 ABC-SSM --ABC_SM_folder ABC-SSM --n_observations 100
+# COMPUTE THE PREDICTIVE PERFORMANCE WITH SCORING RULES:
+mpirun -n 8 python3 scripts/predictive_validation_SRs.py SSM ${model} --inference_technique ABC --inference_folder ABC-SSM --ABC_steps 100 --use_MPI --gamma_kernel_score 6.384898984255503
+mpirun -n 8 python3 scripts/predictive_validation_SRs.py FP ${model} --inference_technique ABC --inference_folder ABC-FP --ABC_steps 100 --use_MPI --gamma_kernel_score 6.384898984255503
 
+# final scoring rules plot:
+python3 plot_scripts/predictive_validation_SRs_plots.py ${model} --inference_folder_ABC_SSM ABC-SSM --inference_folder_ABC_FP ABC-FP
+
+# PLOTS
 python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95 FP --inference_folder ABC-FP --inference_technique ABC
 python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95 SSM --inference_folder ABC-SSM --inference_technique ABC
 

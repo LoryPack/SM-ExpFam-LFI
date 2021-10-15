@@ -10,26 +10,16 @@
 mkdir results
 mkdir results/fullLorenz95smaller
 mkdir results/fullLorenz95smaller/ABC-FP
-mkdir results/fullLorenz95smaller/ABC-SM
 mkdir results/fullLorenz95smaller/ABC-SSM
-mkdir results/fullLorenz95smaller/Exc-SM
 mkdir results/fullLorenz95smaller/Exc-SSM
 mkdir results/fullLorenz95smaller/net-FP
-mkdir results/fullLorenz95smaller/net-SM
 mkdir results/fullLorenz95smaller/net-SSM
 mkdir results/fullLorenz95smaller/observations
-mkdir results/fullLorenz95smaller/datasets_10000
-
-# TODO understand how many steps to use! Are 30 too little? Which paper I should check?
-# for the rest code should be quite OK.
 
 # GENERATE OBSERVATIONS AND EXACT POSTERIORS
 
 n_observations=100
 python3 scripts/generate_obs.py fullLorenz95smaller --n_observations $n_observations
-
-# GENERATE TRAINING DATASET
-mpirun -n 8 python3 scripts/train_net.py SSM fullLorenz95smaller --nets_folder net-SSM --generate --save_tr --dataset datasets_10000 -m
 
 # TRAIN THE NNs
 python3 scripts/train_net.py SSM fullLorenz95smaller --nets_folder net-SSM --epochs 1000 --lr_data 0.001 --lr_theta 0.001 \
@@ -47,14 +37,14 @@ python3 plot_scripts/plot_learned_stats.py fullLorenz95smaller --nets_folder net
 model=fullLorenz95smaller
 prop_size=0.1
 K=200  # bridging steps
-inner_steps=400
+inner_steps=500
 inf_f=Exc-SSM
 burnin=10000
-n_samples=50000
+n_samples=10000
 net_f=net-SSM
-tune_window=100 #000000
+tune_window=100
 
-python3 scripts/inferences.py SM ${model} --burnin $burnin --n_samples $n_samples \
+python3 scripts/inferences.py SSM ${model} --burnin $burnin --n_samples $n_samples \
     --inference_folder $inf_f --nets_f $net_f \
     --start 0 --n_obs $n_observations \
     --aux_MCMC_inner_steps_exchange_MCMC $inner_steps --bridging ${K} \
@@ -64,17 +54,17 @@ python3 scripts/inferences.py SM ${model} --burnin $burnin --n_samples $n_sample
     --propose_new_theta_exchange_MCMC transformation
 
 
-# INFERENCES WITH ABC-SM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS
+# INFERENCES WITH ABC-SSM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS
 NTASKS=8  # adapt this to your setup
 start_obs=0
 ABC_algorithm=SABC
-ABC_steps=100 #0
-n_samples=1000 #0
+ABC_steps=100
+n_samples=1000
 ABC_eps=100000000
 n_observations=100
 SABC_cutoff=0  # increase this for faster stop.
 
-technique=FP
+technique=FP 
 inference_folder=ABC-FP
 nets_folder=net-FP
 
@@ -113,12 +103,17 @@ mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
          --ABC_eps $ABC_eps \
          --SABC_cutoff $SABC_cutoff \
          --load_trace_if_available \
-         --seed 42
+         --seed 42 
 
-# PRODUCE PLOTS
-python3 plot_scripts/timeseries_predictive_error.py fullLorenz95smaller ABC-SSM --ABC_SM_folder ABC-SSM --n_observations 100
+# COMPUTE THE PREDICTIVE PERFORMANCE WITH SCORING RULES:
+mpirun -n 8 python3 scripts/predictive_validation_SRs.py SSM ${model} --inference_technique exchange --inference_folder Exc-SSM --use_MPI --gamma_kernel_score 1.5351486959886604
+mpirun -n 8 python3 scripts/predictive_validation_SRs.py SSM ${model} --inference_technique ABC --inference_folder ABC-SSM --ABC_steps 100 --use_MPI --gamma_kernel_score 1.5351486959886604
+mpirun -n 8 python3 scripts/predictive_validation_SRs.py FP ${model} --inference_technique ABC --inference_folder ABC-FP --ABC_steps 100 --use_MPI --gamma_kernel_score 1.5351486959886604
 
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py FP --inference_folder ABC-FP --inference_technique ABC
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder ABC-SM --inference_technique ABC
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder Exc-SM --inference_technique exchange
+# final scoring rules plot:
+python3 plot_scripts/predictive_validation_SRs_plots.py ${model}  --inference_folder_Exc_SSM Exc-SSM --inference_folder_ABC_SSM ABC-SSM --inference_folder_ABC_FP ABC-FP --Exc_SSM_n_samples 1000
 
+# PLOTS
+python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95smallersmaller FP --inference_folder ABC-FP --inference_technique ABC --obs_index 12
+python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95smallersmaller SSM --inference_folder ABC-SSM --inference_technique ABC --obs_index 12
+python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95smallersmaller SSM --inference_folder Exc-SSM --inference_technique exchange --obs_index 12
