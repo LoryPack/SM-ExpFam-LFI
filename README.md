@@ -1,6 +1,6 @@
 # SM-ExpFam-LFI
 
-Code for the paper: __Score Matched Conditional Exponential Families for Likelihood-Free Inference__, which can be found [here](https://arxiv.org/abs/2012.10903). 
+Code for the paper: __Score Matched Neural Exponential Families for Likelihood-Free Inference__, which can be found [here](https://arxiv.org/abs/2012.10903). 
 
 ## Instructions
 
