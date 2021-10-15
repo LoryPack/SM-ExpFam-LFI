@@ -67,12 +67,12 @@ np.random.seed(seed)
 rng = np.random.RandomState(seed)
 
 # checks
-if model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
+if model not in ("fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 print("{} model.".format(model))
 # set up the default root folder and other values
-default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/",
+default_root_folder = {"fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]

@@ -36,7 +36,7 @@ from src.utils_gamma_example import TrueSummariesComputationGamma, IidGamma, \
     extract_params_and_weights_from_journal_gamma, extract_posterior_mean_from_journal_gamma, \
     generate_gamma_training_samples
 from src.utils_Lorenz95_example import extract_params_and_weights_from_journal_Lorenz95, \
-    extract_posterior_mean_from_journal_Lorenz95, StochLorenz95_with_statistics, StochLorenz95
+    extract_posterior_mean_from_journal_Lorenz95, StochLorenz95
 from src.parsers import parser_approx_likelihood_approach
 
 from abcpy.continuousmodels import Uniform
@@ -93,12 +93,12 @@ np.random.seed(seed)
 
 # checks
 if model not in (
-        "gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95",
+        "gaussian", "beta", "gamma", "MA2", "AR2", "fullLorenz95",
         "fullLorenz95smaller") or technique not in (
         "SM", "SSM", "FP", "true"):
     raise NotImplementedError
 
-true_posterior_available = model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller")
+true_posterior_available = model not in ("fullLorenz95", "fullLorenz95smaller")
 
 if inference_technique not in ("exchange", "ABC"):
     raise NotImplementedError
@@ -113,7 +113,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/",
                        "fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
@@ -303,14 +302,10 @@ if "Lorenz95" in model:
     # sigma_e = Exponential([[sigma_e_rate]], name='sigma_e')
     sigma_e = Uniform([[sigma_e_min], [sigma_e_max]], name='sigma_e')
     phi = Uniform([[phi_min], [phi_max]], name='phi')
-    if model == "Lorenz95":
-        ABC_model = StochLorenz95_with_statistics([theta1, theta2, sigma_e, phi], time_units=4,
-                                                  n_timestep_per_time_unit=30, name='lorenz')
-    else:
-        ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi],
-                                  time_units=1.5 if model == "fullLorenz95smaller" else 4,
-                                  n_timestep_per_time_unit=30, name='lorenz',
-                                  K=8 if model == "fullLorenz95smaller" else 40)
+    ABC_model = StochLorenz95([theta1, theta2, sigma_e, phi],
+                              time_units=1.5 if model == "fullLorenz95smaller" else 4,
+                              n_timestep_per_time_unit=30, name='lorenz',
+                              K=8 if model == "fullLorenz95smaller" else 40)
 
     print("Generate test data:")
     if inference_technique == "ABC":
@@ -386,15 +381,6 @@ elif model == "AR2":
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm)
 
-elif model == "Lorenz95":
-    # define network architectures:
-    nonlinearity = torch.nn.Softplus
-    net_data_SM_architecture = createDefaultNNWithDerivatives(23, 5, [70, 120, 120, 70, 20], nonlinearity=nonlinearity)
-    net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
-                                                batch_norm_last_layer=batch_norm_last_layer,
-                                                affine_batch_norm=affine_batch_norm)
-    net_FP_architecture = createDefaultNN(23, 4, [70, 120, 120, 70, 20],
-                                          nonlinearity=torch.nn.ReLU())  # I am using relu here
 
 elif "fullLorenz95" in model:
     nonlinearity = torch.nn.Softplus

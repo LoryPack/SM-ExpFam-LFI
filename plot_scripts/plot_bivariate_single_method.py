@@ -63,7 +63,7 @@ if model not in ("gaussian", "beta", "gamma", "MA2", "AR2") or technique not in 
 if technique == "FP" and inference_technique == "exchange":
     raise RuntimeError
 
-true_posterior_available = model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller")
+true_posterior_available = model not in ("fullLorenz95", "fullLorenz95smaller")
 
 print("{} model.".format(model))
 # set up the default root folder and other values

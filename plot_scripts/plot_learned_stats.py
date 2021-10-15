@@ -25,7 +25,6 @@ from src.parsers import parser_plot_stats
 from src.utils_beta_example import generate_beta_training_samples, TrueSummariesComputationBeta
 from src.utils_gamma_example import generate_gamma_training_samples, TrueSummariesComputationGamma
 from src.utils_gaussian_example import generate_gaussian_training_samples, TrueSummariesComputationGaussian
-from src.utils_Lorenz95_example import LorenzLargerStatistics
 from src.mcc import compute_mcc
 from src.utils_arma_example import ARMAmodel
 
@@ -45,7 +44,7 @@ affine_batch_norm = args.affine_bn
 FP = args.FP
 seed = args.seed
 
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 print("{} model.".format(model))
@@ -54,7 +53,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/",
                        "fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
@@ -140,9 +138,6 @@ if "Lorenz95" in model:
     lorenz = StochLorenz95([theta1, theta2, sigma_e, phi], time_units=1.5 if model == "fullLorenz95smaller" else 4,
                            n_timestep_per_time_unit=30, K=8 if model == "fullLorenz95smaller" else 40, name='lorenz')
     theta_vect, samples_matrix = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
-    if model == "Lorenz95":
-        statistics = LorenzLargerStatistics(degree=1, cross=False)
-        samples_matrix = statistics.statistics([sample for sample in samples_matrix])  # 21-dimensional stat
 
     print(samples_matrix.shape)
 
@@ -175,14 +170,6 @@ elif model == "AR2":
                                                    batch_norm_last_layer=batch_norm_last_layer,
                                                    affine_batch_norm=affine_batch_norm)
     net_data_SM_architecture = create_PEN_architecture(phi_net_data_SM_architecture, rho_net_data_SM_architecture, 2)
-    net_data_FP_architecture = net_data_SM_architecture
-
-elif model == "Lorenz95":
-    nonlinearity = torch.nn.ReLU if FP else torch.nn.Softplus
-    output_size = 5 if not FP else 4
-    net_data_SM_architecture = createDefaultNN(23, output_size, [70, 120, 120, 70, 20], nonlinearity=nonlinearity(),
-                                               batch_norm_last_layer=batch_norm_last_layer,
-                                               affine_batch_norm=affine_batch_norm)
     net_data_FP_architecture = net_data_SM_architecture
 
 elif "fullLorenz95" in model:

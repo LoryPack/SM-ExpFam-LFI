@@ -8,33 +8,36 @@
 
 # CREATE TREE STRUCTURE:
 mkdir results
-mkdir results/Lorenz95
-mkdir results/Lorenz95/ABC-FP
-mkdir results/Lorenz95/ABC-SM
-mkdir results/Lorenz95/Exc-SM
-mkdir results/Lorenz95/net-FP
-mkdir results/Lorenz95/net-SM
-mkdir results/Lorenz95/observations
+mkdir results/fullLorenz95
+mkdir results/fullLorenz95/ABC-FP
+mkdir results/fullLorenz95/ABC-SM
+mkdir results/fullLorenz95/ABC-SSM
+mkdir results/fullLorenz95/Exc-SM
+mkdir results/fullLorenz95/Exc-SSM
+mkdir results/fullLorenz95/net-FP
+mkdir results/fullLorenz95/net-SM
+mkdir results/fullLorenz95/net-SSM
+mkdir results/fullLorenz95/observations
 
 # GENERATE OBSERVATIONS AND EXACT POSTERIORS
 
 n_observations=100
-python3 scripts/generate_obs.py Lorenz95 --n_observations $n_observations
+python3 scripts/generate_obs.py fullLorenz95 --n_observations $n_observations
 
 # TRAIN THE NNs
-python3 scripts/train_net.py SM Lorenz95 --nets_folder net-SM --epochs 1000 --lr_data 0.001 --lr_theta 0.001 \
-    --update --bn_mom 0.9  --epochs_before_early_stopping 500 --epochs_test_interval 50
-python3 scripts/train_net.py FP Lorenz95 --nets_folder net-FP --epochs 1000 --lr_data 0.001  --epochs_before_early_stopping 200 --epochs_test_interval 25
+python3 scripts/train_net.py SSM fullLorenz95 --nets_folder net-SSM --epochs 1000 --lr_data 0.001 --lr_theta 0.001 \
+    --update --bn_mom 0.9  --epochs_before_early_stopping 500 --epochs_test_interval 50 --load_train_data --dataset datasets_10000
+python3 scripts/train_net.py FP fullLorenz95 --nets_folder net-FP --epochs 1000 --lr_data 0.001  --epochs_before_early_stopping 200 --epochs_test_interval 25 --load_train_data --dataset datasets_10000
 
 # PRODUCE PLOTS FOR NN EMBEDDINGS
-python3 plot_scripts/plot_learned_stats.py Lorenz95 --nets_folder net-SM --no_bn --n_obs 1000
-python3 plot_scripts/plot_learned_nat_params.py Lorenz95 --nets_folder net-SM --n_obs 1000
+python3 plot_scripts/plot_learned_stats.py fullLorenz95 --nets_folder net-SSM --no_bn --n_obs 100
+python3 plot_scripts/plot_learned_nat_params.py fullLorenz95 --nets_folder net-SSM --n_obs 100
 
-python3 plot_scripts/plot_learned_stats.py Lorenz95 --nets_folder net-FP --no_bn --n_obs 1000 --FP
+python3 plot_scripts/plot_learned_stats.py fullLorenz95 --nets_folder net-FP --no_bn --n_obs 100 --FP
 
 # INFERENCES WITH Exc-SM
 
-model=Lorenz95
+model=fullLorenz95
 prop_size=0.1
 K=200  # bridging steps
 inner_steps=400
@@ -55,11 +58,11 @@ python3 scripts/inferences.py SM ${model} --burnin $burnin --n_samples $n_sample
 
 
 # INFERENCES WITH ABC-SM and ABC-FP; this uses MPI to parallelize, with number of tasks given by NTASKS
-NTASKS=4  # adapt this to your setup
+NTASKS=8  # adapt this to your setup
 start_obs=0
 ABC_algorithm=SABC
-ABC_steps=100
-n_samples=1000
+ABC_steps=100 #0
+n_samples=1000 #0
 ABC_eps=100000000
 n_observations=100
 SABC_cutoff=0  # increase this for faster stop.
@@ -85,9 +88,9 @@ mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
          --no_weighted_eucl_dist \
          --seed 42
 
-technique=SM 
-inference_folder=ABC-SM
-nets_folder=net-SM
+technique=SSM
+inference_folder=ABC-SSM
+nets_folder=net-SSM
 
 mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
          --use_MPI \
@@ -106,9 +109,8 @@ mpirun -n $NTASKS python3 scripts/inferences.py $technique $model \
          --seed 42 
 
 # PRODUCE PLOTS
-python3 plot_scripts/timeseries_predictive_error.py Lorenz95 exc --exchange_folder Exc-SM --n_observations 100
+python3 plot_scripts/timeseries_predictive_error.py fullLorenz95 ABC-SSM --ABC_SM_folder ABC-SSM --n_observations 100
 
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py FP --inference_folder ABC-FP --inference_technique ABC
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder ABC-SM --inference_technique ABC
-python3 likelihood_experiments/plots/plot_Lorenz_multiv_post.py SM --inference_folder Exc-SM --inference_technique exchange
+python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95 FP --inference_folder ABC-FP --inference_technique ABC
+python3 plot_scripts/plot_Lorenz_multiv_post.py fullLorenz95 SSM --inference_folder ABC-SSM --inference_technique ABC
 

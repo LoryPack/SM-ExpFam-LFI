@@ -4,7 +4,7 @@ import argparse
 def parser_generate_obs():
     parser = argparse.ArgumentParser()
     parser.add_argument('model',
-                        help="The statistical model to consider; can be 'AR2', 'MA2', 'beta', 'gamma', 'gaussian', 'Lorenz95")
+                        help="The statistical model to consider; can be 'AR2', 'MA2', 'beta', 'gamma', 'gaussian', 'fullLorenz95' or 'fullLorenz95smaller'")
     parser.add_argument('--root_folder', type=str, default=None)
     parser.add_argument('--observation_folder', type=str, default="observations")
     parser.add_argument('--start_observation', type=int, default=0, help='Observation from which to start the script')
@@ -53,8 +53,6 @@ def train_net_batch_parser(default_root_folder, default_nets_folder=None, defaul
     parser.add_argument('--generate_data_only', action="store_true",
                         help="It stops after generating data without starting training.")
     parser.add_argument('--save_net_at_each_epoch', action="store_true")
-    parser.add_argument('--constraint_additional', action="store_true",
-                        help="Use transformation with additional constraints (for Lorenz95 model).")
 
     return parser
 
@@ -63,7 +61,7 @@ def parser_approx_likelihood_approach(default_root_folder, default_nets_folder="
                                       default_observation_folder="observations",
                                       default_inference_folder="Exc-SM", default_n_observations=10,
                                       default_n_samples=1000, default_burnin_MCMC=10000):
-    """Returns a parser with some arguments. It is still possible to add gurther arguments."""
+    """Returns a parser with some arguments. It is still possible to add further arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument('technique', type=str,
                         help="The technique to use; can be 'SM' or 'SSM' (both using exponential family),"

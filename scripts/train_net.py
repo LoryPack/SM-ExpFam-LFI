@@ -18,14 +18,13 @@ from abcpy.inferences import DrawFromPrior
 
 from src.utils_Lorenz95_example import StochLorenz95
 
-from src.CDE_training_routines import FP_training_routine
+from src.training_routines import FP_training_routine
 from src.functions import scale_samples, plot_losses, save_dict_to_json, DummyScaler
 from src.networks import createDefaultNN, createDefaultNNWithDerivatives, create_PEN_architecture
 from src.utils_arma_example import ARMAmodel
 from src.utils_gaussian_example import generate_gaussian_training_samples
 from src.utils_gamma_example import generate_gamma_training_samples
 from src.utils_beta_example import generate_beta_training_samples
-from src.utils_Lorenz95_example import LorenzLargerStatistics
 from src.parsers import train_net_batch_parser
 
 parser = train_net_batch_parser(default_root_folder=None)
@@ -57,11 +56,10 @@ epochs_test_interval = args.epochs_test_interval
 use_MPI = args.use_MPI
 generate_data_only = args.generate_data_only
 save_net_at_each_epoch = args.save_net_at_each_epoch
-constraint_additional = args.constraint_additional
 
 # checks
 if model not in (
-        "gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95",
+        "gaussian", "beta", "gamma", "MA2", "AR2", "fullLorenz95",
         "fullLorenz95smaller") or technique not in (
         "SM", "SSM", "FP"):
     raise NotImplementedError
@@ -78,7 +76,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/",
                        "fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
@@ -330,55 +327,23 @@ if "Lorenz95" in model:
             np.save(datasets_folder + "theta_vect_test.npy", theta_vect_test)
             np.save(datasets_folder + "samples_matrix_test.npy", samples_matrix_test)
 
-        if model == "Lorenz95":
-            statistics = LorenzLargerStatistics()
-            print("Computing statistics...")
-            start = time()
-            samples_matrix = statistics.statistics([sample for sample in samples_matrix[:, 0]])
-            samples_matrix_test = statistics.statistics([sample for sample in samples_matrix_test[:, 0]])
-            print("Done; it took {:.2f} seconds".format(time() - start))
-            # now, what is the range of these statistics? In fact I may need to rescale them to apply score matching.
-            # The second summary is a variance -> >=0. All the other of the 6 original summaries are real (covariances).
-            # Therefore, the cross combinations are all real. Need only to scale the second one in principle. However,
-            # the probability of the variance being =0 is 0. Thus, the integration by parts would still be valid -> no
-            # need to rescale here!
-            if save_train_data:  # we save the statistics as well, as they are quite expensive to compute.
-                np.save(datasets_folder + "statistics.npy", samples_matrix)
-                np.save(datasets_folder + "statistics_test.npy", samples_matrix_test)
     else:
         theta_vect = np.load(datasets_folder + "theta_vect.npy", allow_pickle=True)
         theta_vect_test = np.load(datasets_folder + "theta_vect_test.npy", allow_pickle=True)
-        if model == "Lorenz95":
-            print("Loading statistics")
-            samples_matrix = np.load(datasets_folder + "statistics.npy", allow_pickle=True)
-            samples_matrix_test = np.load(datasets_folder + "statistics_test.npy", allow_pickle=True)
-            print(samples_matrix.shape)
-        else:
-            print("Loading data")
-            samples_matrix = np.load(datasets_folder + "samples_matrix.npy", allow_pickle=True)
-            samples_matrix_test = np.load(datasets_folder + "samples_matrix_test.npy", allow_pickle=True)
-            print(samples_matrix.shape)
+        print("Loading data")
+        samples_matrix = np.load(datasets_folder + "samples_matrix.npy", allow_pickle=True)
+        samples_matrix_test = np.load(datasets_folder + "samples_matrix_test.npy", allow_pickle=True)
+        print(samples_matrix.shape)
         print("Loaded data; {} training samples, {} test samples".format(theta_vect.shape[0], theta_vect_test.shape[0]))
 
-    if model == "Lorenz95":
-        if constraint_additional:
-            lower_bound = np.array([None] * 23)
-            lower_bound[1] = 0
-            upper_bound = np.array([None] * 23)
-        else:
-            lower_bound = np.array([None] * 23)
-            upper_bound = np.array([None] * 23)
-        scaler_data_FP = MinMaxScaler().fit(samples_matrix)
-        scale_samples_flag = True
+    if model == "fullLorenz95":
+        lower_bound = np.array([None] * 4800)
+        upper_bound = np.array([None] * 4800)
     else:
-        if model == "fullLorenz95":
-            lower_bound = np.array([None] * 4800)
-            upper_bound = np.array([None] * 4800)
-        else:
-            lower_bound = np.array([None] * 360)
-            upper_bound = np.array([None] * 360)
-        scaler_data_FP = DummyScaler()
-        scale_samples_flag = False
+        lower_bound = np.array([None] * 360)
+        upper_bound = np.array([None] * 360)
+    scaler_data_FP = DummyScaler()
+    scale_samples_flag = False
     scale_parameters_flag = True
 
 # update the n samples with the actual ones (if we loaded them from saved datasets).
@@ -448,17 +413,6 @@ elif model == "AR2":
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm,
                                                 batch_norm_last_layer_momentum=momentum)
-
-elif model == "Lorenz95":
-    # define network architectures:
-    nonlinearity = torch.nn.Softplus
-    net_data_SM_architecture = createDefaultNNWithDerivatives(23, 5, [70, 120, 120, 70, 20], nonlinearity=nonlinearity)
-    net_theta_SM_architecture = createDefaultNN(4, 4, [30, 50, 50, 30], nonlinearity=nonlinearity(),
-                                                batch_norm_last_layer=batch_norm_last_layer,
-                                                affine_batch_norm=affine_batch_norm,
-                                                batch_norm_last_layer_momentum=momentum)
-    net_FP_architecture = createDefaultNN(23, 4, [70, 120, 120, 70, 20],
-                                          nonlinearity=torch.nn.ReLU())  # I am using relu here
 
 elif "fullLorenz95" in model:
     nonlinearity = torch.nn.Softplus

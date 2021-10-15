@@ -69,7 +69,7 @@ gamma_kernel_score = args.gamma_kernel_score
 np.random.seed(seed)
 
 # checks
-if model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
+if model not in ("fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 if inference_technique not in ("exchange", "ABC"):
@@ -77,7 +77,7 @@ if inference_technique not in ("exchange", "ABC"):
 
 print(f"{model} model with {inference_technique} {technique}")
 # set up the default root folder and other values
-default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/",
+default_root_folder = {"fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]

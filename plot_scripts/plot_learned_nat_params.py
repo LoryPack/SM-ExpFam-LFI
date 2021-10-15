@@ -42,7 +42,7 @@ batch_norm_last_layer = not args.no_bn
 affine_batch_norm = args.affine_bn
 seed = args.seed
 
-if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
+if model not in ("gaussian", "beta", "gamma", "MA2", "AR2", "fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 
 print("{} model.".format(model))
@@ -51,7 +51,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/",
                        "fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
@@ -152,13 +151,6 @@ elif model in ("MA2", "AR2"):
     output_size = 2
     net_theta_SM_architecture = createDefaultNN(2, output_size, [15, 30, 30, 15], nonlinearity=nonlinearity(),
                                                 # net_theta_SM_architecture = createDefaultNN(2, output_size, [15, 30, 30, 15], nonlinearity=nonlinearity(),
-                                                batch_norm_last_layer=batch_norm_last_layer,
-                                                affine_batch_norm=affine_batch_norm)
-elif model == "Lorenz95":
-    # define network architectures:
-    nonlinearity = torch.nn.Softplus
-    output_size = 4
-    net_theta_SM_architecture = createDefaultNN(4, output_size, [30, 50, 50, 30], nonlinearity=nonlinearity(),
                                                 batch_norm_last_layer=batch_norm_last_layer,
                                                 affine_batch_norm=affine_batch_norm)
 

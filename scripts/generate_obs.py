@@ -10,13 +10,11 @@ sys.path.append(os.getcwd())  # for some reason it does not see my files if I do
 
 from abcpy.continuousmodels import Uniform
 
-from src.utils_Lorenz95_example import StochLorenz95
-
 from src.utils_gaussian_example import generate_gaussian_training_samples
 from src.utils_gamma_example import generate_gamma_training_samples
 from src.utils_beta_example import generate_beta_training_samples
 from src.utils_arma_example import ARMAmodel, ar2_log_lik_for_mcmc, ma2_log_lik_for_mcmc
-from src.utils_Lorenz95_example import LorenzLargerStatistics
+from src.utils_Lorenz95_example import StochLorenz95
 from src.parsers import parser_generate_obs
 from src.functions import generate_training_samples_ABC_model, LogLike
 
@@ -36,7 +34,6 @@ default_root_folder = {"gaussian": "results/gaussian/",
                        "beta": "results/beta/",
                        "AR2": "results/AR2/",
                        "MA2": "results/MA2/",
-                       "Lorenz95": "results/Lorenz95/",
                        "fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
@@ -120,10 +117,6 @@ elif "Lorenz95" in model:
                            n_timestep_per_time_unit=30, K=8 if model == "fullLorenz95smaller" else 40, name='lorenz', )
     theta_vect, samples_matrix = generate_training_samples_ABC_model(lorenz, n_observations, seed=seed)
 
-    if model == "Lorenz95":
-        statistics = LorenzLargerStatistics()
-        statistics_matrix = statistics.statistics([sample for sample in samples_matrix[:]])
-
 for obs_index in range(start_observation_index, n_observations):
     print("Observation {}".format(obs_index + 1))
     if isinstance(samples_matrix, np.ndarray):
@@ -135,10 +128,6 @@ for obs_index in range(start_observation_index, n_observations):
     else:
         theta_obs = theta_vect[obs_index].numpy()
     np.save(observation_folder + "theta_obs{}".format(obs_index + 1), theta_obs)
-    if model == "Lorenz95":
-        x_obs = statistics_matrix[obs_index]
-        timeseries_obs = samples_matrix[obs_index]
-        np.save(observation_folder + "timeseries_obs{}".format(obs_index + 1), timeseries_obs)
     np.save(observation_folder + "x_obs{}".format(obs_index + 1), x_obs)
 
     if model == "AR2":

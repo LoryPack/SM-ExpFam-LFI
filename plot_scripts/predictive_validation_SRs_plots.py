@@ -65,16 +65,16 @@ CI_level = args.CI_level
 np.random.seed(seed)  # seed rng
 
 # checks
-if model not in ("Lorenz95", "fullLorenz95", "fullLorenz95smaller"):
+if model not in ("fullLorenz95", "fullLorenz95smaller"):
     raise NotImplementedError
 print(f"{model} model.")
 
-default_root_folder = {"Lorenz95": "results/Lorenz95/", "fullLorenz95": "results/fullLorenz95/",
+default_root_folder = {"fullLorenz95": "results/fullLorenz95/",
                        "fullLorenz95smaller": "results/fullLorenz95smaller/"}
 if results_folder is None:
     results_folder = default_root_folder[model]
 
-model_text = {"Lorenz95": "Lorenz95", "fullLorenz95": "Large Lorenz96", "fullLorenz95smaller": "Small Lorenz96"}
+model_text = {"fullLorenz95": "Large Lorenz96", "fullLorenz95smaller": "Small Lorenz96"}
 
 # now load all SR values; we load only SR results where the folder for the corresponding technique has beeen provided
 
