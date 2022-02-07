@@ -1,6 +1,6 @@
 # SM-ExpFam-LFI
 
-Code for the paper: __Score Matched Neural Exponential Families for Likelihood-Free Inference__, which can be found [here](https://arxiv.org/abs/2012.10903). 
+Code for the paper: __Score Matched Neural Exponential Families for Likelihood-Free Inference__, which can be found [here](https://jmlr.org/papers/v23/21-0061.html). 
 
 ## Instructions
 
@@ -39,11 +39,13 @@ We test some source code we introduce. To run them, do:
 ## Citation
 Please use the following `.bib` entry:
 
-    @misc{pacchiardi2020score,
-      title={Score Matched Conditional Exponential Families for Likelihood-Free Inference}, 
-      author={Lorenzo Pacchiardi and Ritabrata Dutta},
-      year={2020},
-      eprint={2012.10903},
-      archivePrefix={arXiv},
-      primaryClass={stat.ME}
+    @article{pacchiardi2020score,
+        author  = {Lorenzo Pacchiardi and Ritabrata Dutta},
+        title   = {Score Matched Neural Exponential Families for Likelihood-Free Inference},
+        journal = {Journal of Machine Learning Research},
+        year    = {2022},
+        volume  = {23},
+        number  = {38},
+        pages   = {1-71},
+        url     = {http://jmlr.org/papers/v23/21-0061.html}
     }
